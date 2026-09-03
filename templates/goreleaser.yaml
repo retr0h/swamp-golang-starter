@@ -1,0 +1,29 @@
+version: 2
+
+project_name: {{ projectName }}
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./main.go
+    binary: {{ projectName }}
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X {{ modulePath }}/cmd.version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+
+changelog:
+  use: github
+  sort: asc
+
+release:
+  github:
+    owner: {{ owner }}
+    name: {{ projectName }}

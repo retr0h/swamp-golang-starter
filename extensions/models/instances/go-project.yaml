@@ -16,31 +16,74 @@ inputs:
     owner:
       type: string
       default: "retr0h"
-      description: GitHub owner; the module path is built from it
+    module_host:
+      type: string
+      default: "github.com"
     description:
       type: string
       default: ""
-      description: One-line repository description
+    author:
+      type: string
+      default: ""
+    license:
+      type: string
+      default: "MIT"
     parent_dir:
       type: string
       default: "~/git"
-      description: Parent directory the project folder is created in
     go_version:
       type: string
       default: "1.25"
-      description: Go version written to go.mod
+    coverage_target:
+      type: string
+      default: "100%"
+    shared_justfiles:
+      type: boolean
+      default: false
     justfiles_repo:
       type: string
       default: "https://raw.githubusercontent.com/osapi-io/osapi-justfiles/refs/heads/main"
-      description: Base URL the justfile fetches shared recipes from
+    with_ci:
+      type: boolean
+      default: true
+    with_releaser:
+      type: boolean
+      default: true
+    with_codecov:
+      type: boolean
+      default: true
+    with_dependabot:
+      type: boolean
+      default: true
+    with_labeler:
+      type: boolean
+      default: true
+    with_agent_docs:
+      type: boolean
+      default: true
+    with_repos_json:
+      type: boolean
+      default: false
   required:
     - project_name
 globalArguments:
   projectName: ${{ inputs.project_name }}
   kind: ${{ inputs.kind }}
   owner: ${{ inputs.owner }}
+  moduleHost: ${{ inputs.module_host }}
   description: ${{ inputs.description }}
+  author: ${{ inputs.author }}
+  license: ${{ inputs.license }}
   parentDir: ${{ inputs.parent_dir }}
   goVersion: ${{ inputs.go_version }}
+  coverageTarget: ${{ inputs.coverage_target }}
+  sharedJustfiles: ${{ inputs.shared_justfiles }}
   justfilesRepo: ${{ inputs.justfiles_repo }}
+  withCI: ${{ inputs.with_ci }}
+  withReleaser: ${{ inputs.with_releaser }}
+  withCodecov: ${{ inputs.with_codecov }}
+  withDependabot: ${{ inputs.with_dependabot }}
+  withLabeler: ${{ inputs.with_labeler }}
+  withAgentDocs: ${{ inputs.with_agent_docs }}
+  withReposJson: ${{ inputs.with_repos_json }}
 methods: {}

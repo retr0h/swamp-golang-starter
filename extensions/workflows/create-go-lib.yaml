@@ -9,11 +9,23 @@ inputs:
     owner:
       type: string
       default: "retr0h"
-      description: GitHub owner; the module path is built from it
+      description: Repository owner; the module path is built from it
+    module_host:
+      type: string
+      default: "github.com"
+      description: Module path host
     description:
       type: string
       default: ""
       description: One-line repository description
+    author:
+      type: string
+      default: ""
+      description: Copyright holder written to LICENSE; defaults to owner
+    license:
+      type: string
+      default: "MIT"
+      description: SPDX identifier named in README and LICENSE
     parent_dir:
       type: string
       default: "~/git"
@@ -21,12 +33,52 @@ inputs:
     go_version:
       type: string
       default: "1.25"
-      description: Go version written to go.mod
+      description: Go version written to go.mod and .mise.toml
+    coverage_target:
+      type: string
+      default: "100%"
+      description: Codecov project and patch target
+    shared_justfiles:
+      type: boolean
+      default: false
+      description: Fetch build recipes from a shared justfiles repository
+    justfiles_repo:
+      type: string
+      default: "https://raw.githubusercontent.com/osapi-io/osapi-justfiles/refs/heads/main"
+      description: Base URL for shared recipes; only used when shared_justfiles is on
+    with_ci:
+      type: boolean
+      default: true
+      description: GitHub Actions workflows
+    with_releaser:
+      type: boolean
+      default: true
+      description: goreleaser config and release workflow
+    with_codecov:
+      type: boolean
+      default: true
+      description: Codecov config
+    with_dependabot:
+      type: boolean
+      default: true
+      description: Dependabot config
+    with_labeler:
+      type: boolean
+      default: true
+      description: Pull request labeler config
+    with_agent_docs:
+      type: boolean
+      default: true
+      description: AGENTS.md and CLAUDE.md
+    with_repos_json:
+      type: boolean
+      default: false
+      description: .github/repos.json for gh-reposync
   required:
     - project_name
 jobs:
   - name: scaffold
-    description: Create and configure a Go lib project
+    description: Create and configure a Go library
     steps:
       - name: check-prereqs
         description: Verify go, git and just are installed
@@ -38,6 +90,112 @@ jobs:
             project_name: ${{ inputs.project_name }}
             kind: "lib"
             owner: ${{ inputs.owner }}
+            module_host: ${{ inputs.module_host }}
             description: ${{ inputs.description }}
+            author: ${{ inputs.author }}
+            license: ${{ inputs.license }}
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
+            coverage_target: ${{ inputs.coverage_target }}
+            shared_justfiles: ${{ inputs.shared_justfiles }}
+            justfiles_repo: ${{ inputs.justfiles_repo }}
+            with_ci: ${{ inputs.with_ci }}
+            with_releaser: ${{ inputs.with_releaser }}
+            with_codecov: ${{ inputs.with_codecov }}
+            with_dependabot: ${{ inputs.with_dependabot }}
+            with_labeler: ${{ inputs.with_labeler }}
+            with_agent_docs: ${{ inputs.with_agent_docs }}
+            with_repos_json: ${{ inputs.with_repos_json }}
+
+      - name: create-project
+        description: Create the project directory and initialise git
+        dependsOn:
+          - step: check-prereqs
+            condition:
+              type: succeeded
+        task:
+          type: model_method
+          modelIdOrName: go-project
+          methodName: create_project
+          inputs:
+            project_name: ${{ inputs.project_name }}
+            kind: "lib"
+            owner: ${{ inputs.owner }}
+            module_host: ${{ inputs.module_host }}
+            description: ${{ inputs.description }}
+            author: ${{ inputs.author }}
+            license: ${{ inputs.license }}
+            parent_dir: ${{ inputs.parent_dir }}
+            go_version: ${{ inputs.go_version }}
+            coverage_target: ${{ inputs.coverage_target }}
+            shared_justfiles: ${{ inputs.shared_justfiles }}
+            justfiles_repo: ${{ inputs.justfiles_repo }}
+            with_ci: ${{ inputs.with_ci }}
+            with_releaser: ${{ inputs.with_releaser }}
+            with_codecov: ${{ inputs.with_codecov }}
+            with_dependabot: ${{ inputs.with_dependabot }}
+            with_labeler: ${{ inputs.with_labeler }}
+            with_agent_docs: ${{ inputs.with_agent_docs }}
+            with_repos_json: ${{ inputs.with_repos_json }}
+
+      - name: write-files
+        description: Render the templates into the project directory
+        dependsOn:
+          - step: create-project
+            condition:
+              type: succeeded
+        task:
+          type: model_method
+          modelIdOrName: go-project
+          methodName: write_files
+          inputs:
+            project_name: ${{ inputs.project_name }}
+            kind: "lib"
+            owner: ${{ inputs.owner }}
+            module_host: ${{ inputs.module_host }}
+            description: ${{ inputs.description }}
+            author: ${{ inputs.author }}
+            license: ${{ inputs.license }}
+            parent_dir: ${{ inputs.parent_dir }}
+            go_version: ${{ inputs.go_version }}
+            coverage_target: ${{ inputs.coverage_target }}
+            shared_justfiles: ${{ inputs.shared_justfiles }}
+            justfiles_repo: ${{ inputs.justfiles_repo }}
+            with_ci: ${{ inputs.with_ci }}
+            with_releaser: ${{ inputs.with_releaser }}
+            with_codecov: ${{ inputs.with_codecov }}
+            with_dependabot: ${{ inputs.with_dependabot }}
+            with_labeler: ${{ inputs.with_labeler }}
+            with_agent_docs: ${{ inputs.with_agent_docs }}
+            with_repos_json: ${{ inputs.with_repos_json }}
+
+      - name: bootstrap
+        description: Resolve the module and verify the project builds
+        dependsOn:
+          - step: write-files
+            condition:
+              type: succeeded
+        task:
+          type: model_method
+          modelIdOrName: go-project
+          methodName: bootstrap
+          inputs:
+            project_name: ${{ inputs.project_name }}
+            kind: "lib"
+            owner: ${{ inputs.owner }}
+            module_host: ${{ inputs.module_host }}
+            description: ${{ inputs.description }}
+            author: ${{ inputs.author }}
+            license: ${{ inputs.license }}
+            parent_dir: ${{ inputs.parent_dir }}
+            go_version: ${{ inputs.go_version }}
+            coverage_target: ${{ inputs.coverage_target }}
+            shared_justfiles: ${{ inputs.shared_justfiles }}
+            justfiles_repo: ${{ inputs.justfiles_repo }}
+            with_ci: ${{ inputs.with_ci }}
+            with_releaser: ${{ inputs.with_releaser }}
+            with_codecov: ${{ inputs.with_codecov }}
+            with_dependabot: ${{ inputs.with_dependabot }}
+            with_labeler: ${{ inputs.with_labeler }}
+            with_agent_docs: ${{ inputs.with_agent_docs }}
+            with_repos_json: ${{ inputs.with_repos_json }}

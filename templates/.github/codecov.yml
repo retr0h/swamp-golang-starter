@@ -1,0 +1,28 @@
+---
+# Coverage target for this repository.
+#
+# The threshold absorbs rounding, not regression. With precision 2 and round
+# down, a change in statement count can render a genuine 100% as 99.99% and
+# fail the status on an artifact.
+#
+# There is deliberately no `ignore:` list. Exclusions are defined once in
+# .coverignore and applied before the profile is uploaded, so excluded files
+# never reach Codecov. A second list here would be free to drift from that one.
+coverage:
+  precision: 2
+  round: down
+  range: "50...100"
+  status:
+    project:
+      default:
+        target: {{ coverageTarget }}
+        threshold: 0.05%
+    patch:
+      default:
+        target: {{ coverageTarget }}
+        threshold: 0.05%
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false

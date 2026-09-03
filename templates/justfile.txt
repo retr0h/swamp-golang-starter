@@ -1,0 +1,31 @@
+set allow-duplicate-variables
+
+default:
+    @just --list
+
+# --- Dependencies ---
+
+# Install all dependencies
+deps:
+    go mod download
+    go mod tidy
+
+# --- Checks ---
+
+# Run the linters
+lint:
+    golangci-lint run
+
+# Run the tests with coverage
+test:
+    mkdir -p .coverage
+    go test -race -coverprofile=.coverage/cover.out ./...
+
+# Format the source
+fmt:
+    go fmt ./...
+
+# --- Orchestration ---
+
+# Everything CI runs
+ready: deps fmt lint test

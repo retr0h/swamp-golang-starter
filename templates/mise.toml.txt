@@ -1,0 +1,4 @@
+[tools]
+go = "{{ goVersion }}"
+just = "latest"
+uv = "latest"

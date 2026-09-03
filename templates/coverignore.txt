@@ -1,0 +1,5 @@
+/cmd/
+/examples/
+/gen/
+main.go
+/mocks/

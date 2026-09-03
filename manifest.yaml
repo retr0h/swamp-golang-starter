@@ -16,3 +16,36 @@ workflows:
   - create-go-cli.yaml
 skills:
   - golang-starter
+additionalFiles:
+  - templates/.github/codecov.yml
+  - templates/.github/delete-merged-branch-config.yml
+  - templates/.github/dependabot.yml
+  - templates/.github/labeler.yml
+  - templates/.github/repos.json
+  - templates/.github/workflows/commit-lint.yml
+  - templates/.github/workflows/dep-review.yml
+  - templates/.github/workflows/go.yml
+  - templates/.github/workflows/greetings.yml
+  - templates/.github/workflows/just-lint.yml
+  - templates/.github/workflows/labeler.yml
+  - templates/.github/workflows/markdown-lint.yml
+  - templates/.github/workflows/release.yml
+  - templates/.github/workflows/report-card.yml
+  - templates/.github/workflows/stale.yml
+  - templates/AGENTS.md
+  - templates/AI_POLICY.md
+  - templates/CLAUDE.md
+  - templates/CODE_OF_CONDUCT.md
+  - templates/CONTRIBUTING.md
+  - templates/LICENSE.txt
+  - templates/README.md
+  - templates/coverignore.txt
+  - templates/gitignore.txt
+  - templates/go.mod.txt
+  - templates/golangci.yml
+  - templates/goreleaser.yaml
+  - templates/justfile-shared.txt
+  - templates/justfile.txt
+  - templates/lib.go.txt
+  - templates/main.go.txt
+  - templates/mise.toml.txt
