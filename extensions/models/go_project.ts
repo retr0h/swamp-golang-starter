@@ -176,6 +176,10 @@ interface Ctx {
   globalArgs: GlobalArgs;
   logger: { info: (m: string, p?: Record<string, unknown>) => void };
   extensionFile: (relPath: string) => string;
+  readResource: (
+    specName: string,
+    name: string,
+  ) => Promise<Record<string, unknown> | undefined>;
   writeResource: (
     specName: string,
     name: string,
@@ -184,6 +188,31 @@ interface Ctx {
 }
 
 // --- Helpers ---
+
+/**
+ * The file lists recorded by a previous `write_files` run.
+ *
+ * A method that does not write files must not claim it wrote none: every
+ * method writes the whole state resource, so returning `[]` from
+ * `create_project` or `bootstrap` erases what `write_files` recorded a step
+ * earlier. Reading the prior state forward keeps the record true.
+ */
+async function priorFileLists(
+  context: Pick<Ctx, "readResource">,
+): Promise<
+  {
+    filesWritten: string[];
+    filesSkipped: string[];
+    filesOverwritten: string[];
+  }
+> {
+  const prior = await context.readResource("state", "current");
+  return {
+    filesWritten: (prior?.filesWritten as string[]) ?? [],
+    filesSkipped: (prior?.filesSkipped as string[]) ?? [],
+    filesOverwritten: (prior?.filesOverwritten as string[]) ?? [],
+  };
+}
 
 /** Expand a leading `~` to the user's home directory. */
 export function expandHome(dir: string): string {
@@ -467,17 +496,19 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
   }
 
   if (g.withCI) {
+    // A workflow that reads a config file its gate excluded fails on the
+    // first push, so each one ships only when what it needs ships with it.
     const workflows = [
       "go",
       "commit-lint",
       "dep-review",
       "greetings",
       "just-lint",
-      "labeler",
       "markdown-lint",
       "report-card",
       "stale",
     ];
+    if (g.withLabeler) workflows.push("labeler"); // reads .github/labeler.yml
     if (g.kind === "cli" && g.withReleaser) workflows.push("release");
     for (const w of workflows) {
       files.push({
@@ -516,24 +547,25 @@ export const model = {
       description: "Verify go, git and just are installed",
       arguments: z.object({}),
       execute: async (_args: Record<string, never>, context: Ctx) => {
+        const g = context.globalArgs;
+        context.logger.info("Checking prerequisites for {project}", {
+          project: g.projectName,
+        });
         for (const tool of ["go", "git", "just"]) {
           await runCommand(tool, ["--version"]);
         }
-        const g = context.globalArgs;
         const projectPath = projectPathFor(g);
         context.logger.info("Prerequisites present; target is {path}", {
           path: projectPath,
         });
         const handle = await context.writeResource("state", "current", {
+          ...(await priorFileLists(context)),
           projectName: g.projectName,
           projectPath,
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
           goVersionMise: g.goVersionMise,
-          filesWritten: [],
-          filesSkipped: [],
-          filesOverwritten: [],
           status: "prereqs_checked",
           updatedAt: new Date().toISOString(),
         });
@@ -547,6 +579,7 @@ export const model = {
       execute: async (_args: Record<string, never>, context: Ctx) => {
         const g = context.globalArgs;
         const projectPath = projectPathFor(g);
+        context.logger.info("Creating {path}", { path: projectPath });
         await Deno.mkdir(projectPath, { recursive: true });
 
         // `git init` on an existing repository is a no-op, so re-running is safe.
@@ -554,15 +587,13 @@ export const model = {
 
         context.logger.info("Initialised {path}", { path: projectPath });
         const handle = await context.writeResource("state", "current", {
+          ...(await priorFileLists(context)),
           projectName: g.projectName,
           projectPath,
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
           goVersionMise: g.goVersionMise,
-          filesWritten: [],
-          filesSkipped: [],
-          filesOverwritten: [],
           status: "created",
           updatedAt: new Date().toISOString(),
         });
@@ -585,6 +616,9 @@ export const model = {
           );
         }
         const vars = varsFor(g);
+        context.logger.info("Rendering templates into {path}", {
+          path: projectPath,
+        });
         const written: string[] = [];
         const skipped: string[] = [];
         const overwritten: string[] = [];
@@ -651,21 +685,22 @@ export const model = {
       execute: async (_args: Record<string, never>, context: Ctx) => {
         const g = context.globalArgs;
         const projectPath = projectPathFor(g);
+        context.logger.info("Resolving modules in {path}", {
+          path: projectPath,
+        });
 
         await runCommand("go", ["mod", "tidy"], { cwd: projectPath });
         await runCommand("go", ["build", "./..."], { cwd: projectPath });
 
         context.logger.info("Project builds at {path}", { path: projectPath });
         const handle = await context.writeResource("state", "current", {
+          ...(await priorFileLists(context)),
           projectName: g.projectName,
           projectPath,
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
           goVersionMise: g.goVersionMise,
-          filesWritten: [],
-          filesSkipped: [],
-          filesOverwritten: [],
           status: "bootstrapped",
           updatedAt: new Date().toISOString(),
         });

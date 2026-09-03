@@ -1,39 +1,58 @@
 set allow-duplicate-variables
 
+# Coverage target. Declared again in .github/codecov.yml, which gates the same
+# number on the pull request. Neither system can read the other's config, so it
+# lives in both places — change both together.
+coverage_target := "@@coverageTarget@@"
+
 default:
     @just --list
 
-# --- Dependencies ---
+# --- The recipes CI calls ---
+#
+# .github/workflows/ invokes fetch, deps, test, md-fmt-check and
+# just-fmt-check. Both justfile variants implement all five, so the same
+# workflows work whether or not this project uses shared recipes.
+
+# No shared recipes to fetch — this justfile is self-contained.
+fetch:
+    @echo "nothing to fetch — self-contained justfile"
 
 # Install all dependencies
 deps:
     go mod download
     go mod tidy
 
-# --- Checks ---
+# Run the tests with coverage, then gate on the target
+test: go-test cov-check
 
-# Run the linters
-lint:
-    golangci-lint run
+# Check markdown formatting
+md-fmt-check:
+    uvx --from mdformat mdformat --check --number --wrap 80 .
 
-# Coverage target. Declared again in .github/codecov.yml, which gates the
-# same number on the pull request. Neither system can read the other's
-# config, so it lives in both places — change both together.
-coverage_target := "@@coverageTarget@@"
+# Check justfile formatting
+just-fmt-check:
+    just --unstable --fmt --check
+
+# --- Go ---
 
 # Run the tests with coverage
-test:
+go-test:
     mkdir -p .coverage
     go test -race -coverprofile=.coverage/cover.out ./...
 
 # Fail when total coverage is below the target
-cov-check: test
+cov-check:
     #!/usr/bin/env bash
     set -euo pipefail
     total=$(go tool cover -func=.coverage/cover.out | awk '/^total:/ {print $3}' | tr -d '%')
     target=$(echo "{{ coverage_target }}" | tr -d '%')
     echo "coverage: ${total}% (target ${target}%)"
     awk -v t="$total" -v g="$target" 'BEGIN { exit (t+0 >= g+0) ? 0 : 1 }'
+
+# Run the linters
+lint:
+    golangci-lint run
 
 # Format the source
 fmt:
@@ -42,4 +61,4 @@ fmt:
 # --- Orchestration ---
 
 # Everything CI runs
-ready: deps fmt lint cov-check
+ready: deps fmt lint test md-fmt-check just-fmt-check

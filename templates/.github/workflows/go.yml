@@ -25,6 +25,7 @@ jobs:
       - name: Test
         run: just test
       - name: Upload coverage reports to Codecov
+        if: hashFiles('.github/codecov.yml') != ''
         uses: codecov/codecov-action@v7
         with:
           files: .coverage/cover.out

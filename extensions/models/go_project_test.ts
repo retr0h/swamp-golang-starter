@@ -252,3 +252,38 @@ Deno.test("every template the plan names is listed once", () => {
     );
   }
 });
+
+// --- coupling between the workflows and everything they invoke ---
+
+Deno.test("both justfile variants implement every recipe CI invokes", () => {
+  // .github/workflows/ calls these by name. A variant missing one turns CI red
+  // on the first push, and the standalone variant is the default.
+  const required = ["fetch", "deps", "test", "md-fmt-check", "just-fmt-check"];
+  for (const variant of ["justfile.txt", "justfile-shared.txt"]) {
+    const body = Deno.readTextFileSync(
+      new URL(`../../templates/${variant}`, import.meta.url),
+    );
+    for (const recipe of required) {
+      assert(
+        new RegExp(`^${recipe}:`, "m").test(body) ||
+          body.includes(`.just/remote/`),
+        `${variant} does not provide '${recipe}'`,
+      );
+    }
+  }
+});
+
+Deno.test("a workflow never ships without the config it reads", () => {
+  const noLabeler = planFor(args({ withLabeler: false })).map((e) => e.dest);
+  assert(!noLabeler.includes(".github/workflows/labeler.yml"));
+  assert(!noLabeler.includes(".github/labeler.yml"));
+
+  const withLabeler = planFor(args({ withLabeler: true })).map((e) => e.dest);
+  assert(withLabeler.includes(".github/workflows/labeler.yml"));
+  assert(withLabeler.includes(".github/labeler.yml"));
+
+  // release.yml reads .goreleaser.yaml
+  const noRel = planFor(args({ kind: "cli", withReleaser: false })).map((e) => e.dest);
+  assert(!noRel.includes(".github/workflows/release.yml"));
+  assert(!noRel.includes(".goreleaser.yaml"));
+});
