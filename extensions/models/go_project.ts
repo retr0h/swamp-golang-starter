@@ -17,7 +17,7 @@ import { z } from "npm:zod@4";
 
 // --- Schemas ---
 
-const GlobalArgsSchema = z.object({
+export const GlobalArgsSchema = z.object({
   // Identity
   projectName: z
     .string()
@@ -149,7 +149,7 @@ const GlobalArgsSchema = z.object({
     ),
 });
 
-type GlobalArgs = z.infer<typeof GlobalArgsSchema>;
+export type GlobalArgs = z.infer<typeof GlobalArgsSchema>;
 
 const StateSchema = z.object({
   projectName: z.string(),
@@ -186,7 +186,7 @@ interface Ctx {
 // --- Helpers ---
 
 /** Expand a leading `~` to the user's home directory. */
-function expandHome(dir: string): string {
+export function expandHome(dir: string): string {
   if (!dir.startsWith("~")) return dir;
   const home = Deno.env.get("HOME");
   if (!home) throw new Error("HOME is not set; cannot expand '~'");
@@ -221,12 +221,12 @@ async function runCommand(
 }
 
 /** Module path for the project. */
-function modulePathFor(g: GlobalArgs): string {
+export function modulePathFor(g: GlobalArgs): string {
   return `${g.moduleHost}/${g.owner}/${g.projectName}`;
 }
 
 /** Absolute project directory. */
-function projectPathFor(g: GlobalArgs): string {
+export function projectPathFor(g: GlobalArgs): string {
   return `${expandHome(g.parentDir)}/${g.projectName}`;
 }
 
@@ -245,9 +245,9 @@ function projectPathFor(g: GlobalArgs): string {
  * around it. Nothing in the Go, YAML, TOML, just, goreleaser or Actions
  * stack uses `@@`.
  */
-function render(template: string, vars: Record<string, string>): string {
+export function render(template: string, vars: Record<string, string>): string {
   return template.replace(
-    /@@(\w+)@@/g,
+    /@@\s*(\w+)\s*@@/g,
     (_match, key: string) => {
       if (!(key in vars)) {
         throw new Error(`Template referenced unknown variable: ${key}`);
@@ -264,7 +264,7 @@ function render(template: string, vars: Record<string, string>): string {
  * on the gates. A release badge on a project with no releaser, or a codecov
  * badge on one with no coverage upload, renders as a broken image forever.
  */
-function badgesFor(g: GlobalArgs, modulePath: string): string {
+export function badgesFor(g: GlobalArgs, modulePath: string): string {
   if (!g.withBadges) return "";
   const repo = `${g.owner}/${g.projectName}`;
   const style = "style=for-the-badge";
@@ -314,7 +314,7 @@ function badgesFor(g: GlobalArgs, modulePath: string): string {
 }
 
 /** Build the substitution map from the model's arguments. */
-function varsFor(g: GlobalArgs): Record<string, string> {
+export function varsFor(g: GlobalArgs): Record<string, string> {
   const modulePath = modulePathFor(g);
   return {
     projectName: g.projectName,
@@ -365,7 +365,7 @@ function varsFor(g: GlobalArgs): Record<string, string> {
 }
 
 /** One template and where it lands. */
-interface PlanEntry {
+export interface PlanEntry {
   template: string;
   dest: string;
   /**
@@ -388,17 +388,12 @@ interface PlanEntry {
  * Every gate is applied here rather than at write time, so the plan is the
  * single statement of what a given set of arguments produces.
  */
-function planFor(g: GlobalArgs): PlanEntry[] {
+export function planFor(g: GlobalArgs): PlanEntry[] {
   const pkg = g.projectName.replace(/-/g, "");
   const files: PlanEntry[] = [
     { template: "go.mod.txt", dest: "go.mod", managed: false },
     { template: "README.md", dest: "README.md", managed: false },
     { template: "CONTRIBUTING.md", dest: "CONTRIBUTING.md", managed: true },
-    {
-      template: "CODE_OF_CONDUCT.md",
-      dest: "CODE_OF_CONDUCT.md",
-      managed: true,
-    },
     { template: "AI_POLICY.md", dest: "AI_POLICY.md", managed: true },
     { template: "LICENSE.txt", dest: "LICENSE", managed: false },
     { template: "gitignore.txt", dest: ".gitignore", managed: true },
