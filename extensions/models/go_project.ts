@@ -538,7 +538,7 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
 /** Model definition for scaffolding a Go project. */
 export const model = {
   type: "@retr0h/go-project",
-  version: "2026.09.03.2",
+  version: "2026.09.03.3",
   globalArguments: GlobalArgsSchema,
   resources: {
     "state": {

@@ -31,8 +31,13 @@ deps:
 test:
     just go-test
 
+# Run code generation
+generate:
+    just go-generate
+
 # Format, lint, and generate before committing
 ready:
+    just generate
     just md-fmt
     just go-fmt
     just go-vet
