@@ -513,3 +513,11 @@ Deno.test("bootstrap refuses a directory with no go.mod", async () => {
     assert(result.errors![0].includes("No go.mod"));
   });
 });
+
+Deno.test("check_prereqs probes go with a flag go actually accepts", async () => {
+  // `go --version` exits 2 after printing help; the spelling is `go version`.
+  // This test runs the real probe, so it fails if the spelling regresses.
+  const { context, written } = testContext({ email: "maintainer@example.com" });
+  await model.methods.check_prereqs.execute({}, context);
+  assertEquals(written[0].data.status, "prereqs_checked");
+});

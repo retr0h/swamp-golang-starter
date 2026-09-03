@@ -1,3 +1,4 @@
+id: c0949e2d-adf2-4cec-b5dc-2d7209c7b285
 name: "@retr0h/create-go-cli"
 description: Scaffold a Go command — module, justfile, CI workflows, linters and release config
 version: 1

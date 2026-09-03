@@ -1,3 +1,4 @@
+id: ea0efb72-6711-4007-974f-4dd5ab507549
 name: "@retr0h/retemplate-go"
 description: Re-render the templates over an existing Go project, refreshing it from the current templates
 version: 1
