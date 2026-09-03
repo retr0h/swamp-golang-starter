@@ -1,3 +1,4 @@
+@@badges@@
 # @@projectName@@
 
 @@description@@
@@ -24,6 +25,15 @@ just test
 just ready      # everything CI runs
 ```
 
+## Documentation
+
+[Package documentation](https://pkg.go.dev/@@goReference@@) on pkg.go.dev.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, setup, conventions
+and the pull request workflow.
+
 ## License
 
-@@license@@, see [LICENSE](LICENSE).
+The @@license@@ License, see [LICENSE](LICENSE).

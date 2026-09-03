@@ -71,6 +71,16 @@ const GlobalArgsSchema = z.object({
     .string()
     .default("ubuntu-latest")
     .describe("GitHub Actions runner label"),
+  pkgPath: z
+    .string()
+    .default("")
+    .describe(
+      "Import path under the module that the go reference badge points at, e.g. 'pkg/widget'. Empty means the module root.",
+    ),
+  withBadges: z
+    .boolean()
+    .default(true)
+    .describe("Render the shields.io badge block at the top of the README"),
   goVersionCI: z
     .string()
     .default("stable")
@@ -229,6 +239,62 @@ function render(template: string, vars: Record<string, string>): string {
   );
 }
 
+/**
+ * Compose the README badge block.
+ *
+ * Badges cannot live in the template as plain text: which ones apply depends
+ * on the gates. A release badge on a project with no releaser, or a codecov
+ * badge on one with no coverage upload, renders as a broken image forever.
+ */
+function badgesFor(g: GlobalArgs, modulePath: string): string {
+  if (!g.withBadges) return "";
+  const repo = `${g.owner}/${g.projectName}`;
+  const style = "style=for-the-badge";
+  const rows: string[] = [];
+
+  if (g.withReleaser && g.kind === "cli") {
+    rows.push(
+      `[![release](https://img.shields.io/github/release/${repo}.svg?${style})](https://github.com/${repo}/releases/latest)`,
+    );
+  }
+  if (g.withCodecov) {
+    rows.push(
+      `[![codecov](https://img.shields.io/codecov/c/github/${repo}?${style})](https://codecov.io/gh/${repo})`,
+    );
+  }
+  rows.push(
+    `[![go report card](https://goreportcard.com/badge/${modulePath}?${style})](https://goreportcard.com/report/${modulePath})`,
+  );
+  rows.push(
+    `[![license](https://img.shields.io/badge/license-${g.license}-brightgreen.svg?${style})](LICENSE)`,
+  );
+  if (g.withCI) {
+    rows.push(
+      `[![build](https://img.shields.io/github/actions/workflow/status/${repo}/go.yml?${style})](https://github.com/${repo}/actions/workflows/go.yml)`,
+    );
+  }
+  if (g.withReleaser && g.kind === "cli") {
+    rows.push(
+      `[![powered by](https://img.shields.io/badge/powered%20by-goreleaser-green.svg?${style})](https://github.com/goreleaser)`,
+    );
+  }
+  rows.push(
+    `[![conventional commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?${style})](https://conventionalcommits.org)`,
+  );
+  rows.push(
+    `[![built with just](https://img.shields.io/badge/Built_with-Just-black?${style}&logo=just&logoColor=white)](https://just.systems)`,
+  );
+  rows.push(
+    `![github commit activity](https://img.shields.io/github/commit-activity/m/${repo}?${style})`,
+  );
+  const ref = g.pkgPath ? `${modulePath}/${g.pkgPath}` : modulePath;
+  rows.push(
+    `[![go reference](https://img.shields.io/badge/go-reference-00ADD8?${style}&logo=go&logoColor=white)](https://pkg.go.dev/${ref})`,
+  );
+
+  return rows.join("\n") + "\n";
+}
+
 /** Build the substitution map from the model's arguments. */
 function varsFor(g: GlobalArgs): Record<string, string> {
   const modulePath = modulePathFor(g);
@@ -248,10 +314,46 @@ function varsFor(g: GlobalArgs): Record<string, string> {
     goVersionCI: g.goVersionCI,
     justfilesRepo: g.justfilesRepo,
     year: String(new Date().getFullYear()),
+    badges: badgesFor(g, modulePath),
+    projectStructure: g.kind === "lib"
+      ? [
+        `pkg/${
+          g.projectName.replace(/-/g, "")
+        }/   the package — this is the product`,
+        "examples/            standalone programs a reader can run",
+        ".github/workflows/   CI",
+      ].join("\n")
+      : [
+        "main.go              entry point",
+        "cmd/                 command definitions",
+        "internal/            implementation, not importable",
+        ".github/workflows/   CI",
+      ].join("\n"),
+    repoUrl: `https://github.com/${g.owner}/${g.projectName}`,
+    pkgPath: g.pkgPath,
+    goReference: g.pkgPath ? `${modulePath}/${g.pkgPath}` : modulePath,
     installLine: g.kind === "cli"
       ? `go install ${modulePath}@latest`
       : `go get ${modulePath}`,
   };
+}
+
+/** One template and where it lands. */
+interface PlanEntry {
+  template: string;
+  dest: string;
+  /**
+   * Whether the scaffolder keeps ownership of the file after seeding it.
+   *
+   * `true` — generated. Nobody edits it by hand, so re-rendering is safe and
+   * is the whole point of the retemplate flow.
+   *
+   * `false` — seeded once, then the project's. A README, a CONTRIBUTING, an
+   * AGENTS.md and the Go sources grow to hundreds of lines of writing that no
+   * template can reproduce. Overwriting one destroys work, so `overwrite`
+   * never touches it.
+   */
+  managed: boolean;
 }
 
 /**
@@ -260,41 +362,48 @@ function varsFor(g: GlobalArgs): Record<string, string> {
  * Every gate is applied here rather than at write time, so the plan is the
  * single statement of what a given set of arguments produces.
  */
-function planFor(g: GlobalArgs): Array<{ template: string; dest: string }> {
+function planFor(g: GlobalArgs): PlanEntry[] {
   const pkg = g.projectName.replace(/-/g, "");
-  const files: Array<{ template: string; dest: string }> = [
-    { template: "go.mod.txt", dest: "go.mod" },
-    { template: "README.md", dest: "README.md" },
-    { template: "CONTRIBUTING.md", dest: "CONTRIBUTING.md" },
-    { template: "CODE_OF_CONDUCT.md", dest: "CODE_OF_CONDUCT.md" },
-    { template: "AI_POLICY.md", dest: "AI_POLICY.md" },
-    { template: "LICENSE.txt", dest: "LICENSE" },
-    { template: "gitignore.txt", dest: ".gitignore" },
-    { template: "coverignore.txt", dest: ".coverignore" },
-    { template: "mise.toml.txt", dest: ".mise.toml" },
-    { template: "golangci.yml", dest: ".golangci.yml" },
+  const files: PlanEntry[] = [
+    { template: "go.mod.txt", dest: "go.mod", managed: false },
+    { template: "README.md", dest: "README.md", managed: false },
+    { template: "CONTRIBUTING.md", dest: "CONTRIBUTING.md", managed: true },
+    {
+      template: "CODE_OF_CONDUCT.md",
+      dest: "CODE_OF_CONDUCT.md",
+      managed: true,
+    },
+    { template: "AI_POLICY.md", dest: "AI_POLICY.md", managed: true },
+    { template: "LICENSE.txt", dest: "LICENSE", managed: false },
+    { template: "gitignore.txt", dest: ".gitignore", managed: true },
+    { template: "coverignore.txt", dest: ".coverignore", managed: true },
+    { template: "mise.toml.txt", dest: ".mise.toml", managed: true },
+    { template: "golangci.yml", dest: ".golangci.yml", managed: true },
     {
       template: g.sharedJustfiles ? "justfile-shared.txt" : "justfile.txt",
       dest: "justfile",
+      managed: true,
     },
   ];
 
   if (g.withAgentDocs) {
-    files.push({ template: "AGENTS.md", dest: "AGENTS.md" });
-    files.push({ template: "CLAUDE.md", dest: "CLAUDE.md" });
+    files.push({ template: "AGENTS.md", dest: "AGENTS.md", managed: true });
+    files.push({ template: "CLAUDE.md", dest: "CLAUDE.md", managed: true });
   }
 
   if (g.kind === "lib") {
     files.push({
       template: "lib.go.txt",
       dest: `pkg/${pkg}/${pkg}.go`,
+      managed: false,
     });
   } else {
-    files.push({ template: "main.go.txt", dest: "main.go" });
+    files.push({ template: "main.go.txt", dest: "main.go", managed: false });
     if (g.withReleaser) {
       files.push({
         template: "goreleaser.yaml",
         dest: ".goreleaser.yaml",
+        managed: true,
       });
     }
   }
@@ -303,24 +412,28 @@ function planFor(g: GlobalArgs): Array<{ template: string; dest: string }> {
     files.push({
       template: ".github/codecov.yml",
       dest: ".github/codecov.yml",
+      managed: true,
     });
   }
   if (g.withDependabot) {
     files.push({
       template: ".github/dependabot.yml",
       dest: ".github/dependabot.yml",
+      managed: true,
     });
   }
   if (g.withLabeler) {
     files.push({
       template: ".github/labeler.yml",
       dest: ".github/labeler.yml",
+      managed: true,
     });
   }
   if (g.withReposJson) {
     files.push({
       template: ".github/repos.json",
       dest: ".github/repos.json",
+      managed: true,
     });
   }
 
@@ -341,11 +454,13 @@ function planFor(g: GlobalArgs): Array<{ template: string; dest: string }> {
       files.push({
         template: `.github/workflows/${w}.yml`,
         dest: `.github/workflows/${w}.yml`,
+        managed: true,
       });
     }
     files.push({
       template: ".github/delete-merged-branch-config.yml",
       dest: ".github/delete-merged-branch-config.yml",
+      managed: true,
     });
   }
 
@@ -447,7 +562,9 @@ export const model = {
             exists = false;
           }
           if (exists) {
-            if (!g.overwrite) {
+            // `overwrite` reaches generated files only. A seeded file is the
+            // project's own writing by now, and no template can reproduce it.
+            if (!g.overwrite || !file.managed) {
               skipped.push(file.dest);
               continue;
             }
