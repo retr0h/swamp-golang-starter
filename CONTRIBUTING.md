@@ -107,15 +107,24 @@ excluded fails on the first push. `labeler.yml` ships only with
 `swamp extension push` requires a review report bound to a content hash of the
 source, so any change needs a fresh one.
 
+Edit the verdicts in `scripts/review-verdicts.json`, then:
+
 ```bash
-swamp extension push manifest.yaml --dry-run --json    # prints path + skeleton
-SWAMP_EXTENSION_REVIEW_DIR="$PWD/.swamp-review" \
-  swamp extension push manifest.yaml --dry-run
+swamp extension fmt manifest.yaml                      # FIRST — see below
+./scripts/record-review.sh scripts/review-verdicts.json
 ```
 
-Reports live in `.swamp-review/` rather than the system temp directory a local
-run defaults to. **The override needs an absolute path**; a relative one is
-ignored silently.
+Format **before** recording. `swamp extension fmt` rewrites source, which moves
+the content hash, which invalidates a report written a moment earlier.
+
+Three details the script exists to absorb, each of which cost a round trip:
+
+- `SWAMP_EXTENSION_REVIEW_DIR` is a **base** directory — swamp writes
+  `swamp-extension-review/` inside it, so the report is one level deeper than
+  the variable suggests.
+- It must be an **absolute** path. A relative one is ignored without a word.
+- Any source change moves the hash, so the old report has to be removed or
+  `.swamp-review/` accumulates dead files that look current.
 
 Run the mandatory mechanical checks before the dimensional review — schema-write
 conformance in particular. It has caught two defects here that neither the type

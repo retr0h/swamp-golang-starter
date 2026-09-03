@@ -1,0 +1,82 @@
+{
+  "extension": "@retr0h/golang-starter",
+  "version": "2026.09.02.1",
+  "reviewedAt": "2026-09-03T06:20:00Z",
+  "dimensions": [
+    {
+      "id": "credentials-secrets",
+      "verdict": "na",
+      "note": "Handles no secrets. Runs go, git and just locally and writes files; makes no authenticated call and reads no vault. The one personal value it touches is the Code of Conduct contact, published in the generated repository by design."
+    },
+    {
+      "id": "logging-quality",
+      "verdict": "pass",
+      "note": "All four methods log at info on entry and completion with structured placeholders. No string interpolation into messages; the email argument never reaches a log line."
+    },
+    {
+      "id": "error-handling",
+      "verdict": "pass",
+      "note": "Errors throw before any write, and pre-flight checks catch misconfiguration before the method body runs at all. runCommand includes the command, arguments, exit code and both streams. render throws naming the unknown variable rather than emitting a hole. A test asserts nothing is written when the code-of-conduct guard fires."
+    },
+    {
+      "id": "testing-completeness",
+      "verdict": "pass",
+      "note": "38 tests. 28 cover the pure functions; 10 cover execute() and the pre-flight checks against a context this test file supplies, since createModelTestContext offers no extensionFile and Ctx is a plain interface. The execute tests pin what the earlier gap let through: every state write matches StateSchema exactly, a later method preserves the file lists an earlier one recorded, overwrite rewrites generated files and spares seeded ones, no rendered file retains a placeholder, and a refused run writes nothing."
+    },
+    {
+      "id": "idempotency-resilience",
+      "verdict": "pass",
+      "note": "write_files skips an existing file unless overwrite is on, and overwrite reaches generated files only \u2014 asserted by test. create_project is idempotent: mkdir is recursive, git init on an existing repository is a no-op. Partial failure leaves partial files a re-run completes rather than conflicts with."
+    },
+    {
+      "id": "api-contracts",
+      "verdict": "na",
+      "note": "No HTTP call, no external API, no pagination. The only network access in what it produces is the generated justfile's curl, which runs in the generated project."
+    },
+    {
+      "id": "resource-management",
+      "verdict": "pass",
+      "note": "No sockets, handles or temporary files. Deno.readTextFile and Deno.writeTextFile manage their own handles; Deno.Command output is fully buffered. Filesystem tests clean up in a finally."
+    },
+    {
+      "id": "published-surface-hygiene",
+      "verdict": "pass",
+      "note": "CODE_OF_CONDUCT.md shipped the template author's address in its enforcement section, so every consumer would have named a stranger as the person to report harassment to. It takes a variable now, with both a pre-flight check and a guard refusing without one. AI_POLICY.md named an unrelated organization four times and is generic. No IPs, hostnames, subnets or account identifiers. One real URL by design: justfilesRepo, used only when sharedJustfiles is on, which is off by default."
+    },
+    {
+      "id": "schema-strictness",
+      "verdict": "pass",
+      "note": "Both schemas are plain z.object with no .passthrough(). Every field typed, and projectName carries a regex rejecting anything Go cannot use as a module or package name."
+    },
+    {
+      "id": "lifetime-gc",
+      "verdict": "pass",
+      "note": "The one resource spec declares lifetime 'infinite' and garbageCollection 10. Infinite because the record of what a scaffolder wrote is the audit trail for a directory that still exists; 10 versions bounds it."
+    },
+    {
+      "id": "crud-completeness",
+      "verdict": "na",
+      "note": "Not a CRUD lifecycle model. It scaffolds a directory once and optionally re-renders it; no remote resource to update, delete or sync. The four methods are stages of one operation."
+    },
+    {
+      "id": "preflight-checks",
+      "verdict": "pass",
+      "note": "Four labelled checks. Two carry 'policy' and apply to every mutating method: a code of conduct must name a contact, and fetching shared recipes requires somewhere to fetch from. Two carry 'live' and are scoped with appliesTo: create_project requires its parent directory, bootstrap requires a go.mod, so running out of order fails with a sentence naming the fix."
+    },
+    {
+      "id": "instance-names",
+      "verdict": "pass",
+      "note": "One spec, one instance name, written by all four methods with the same shape. A test asserts every state write matches StateSchema field for field."
+    },
+    {
+      "id": "data-access",
+      "verdict": "pass",
+      "note": "Three methods hardcoded the file-list fields to [], so bootstrap after write_files erased what had just been recorded. They read prior state forward through readResource now, and a test pins it. No direct dataRepository access."
+    },
+    {
+      "id": "version-upgrades",
+      "verdict": "na",
+      "note": "First version. Nothing published to upgrade from, no migration to declare."
+    }
+  ]
+}
