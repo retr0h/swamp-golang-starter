@@ -50,11 +50,10 @@ templates/                             the files a generated project receives
 2. Add it to `additionalFiles` in `manifest.yaml`. A template the plan names but
    the manifest does not ship fails at run time, on someone else's machine.
    There is a test for this.
-3. Add it to `planFor()` in the model, with `managed` set:
-   - `true` — generated. Re-rendering it is the point.
-   - `false` — seeded once, then the project's. `README.md`, `go.mod`, `LICENSE`
-     and the Go sources grow into writing no template reproduces, so
-     `overwrite` never touches them.
+3. Add it to `planFor()` in the model, with `managed` set. The README's
+   "Re-rendering an existing project" section in [README.md](README.md) defines
+   the two classes and lists which files fall in each. Classify the new template
+   against that, and add a case to the plan tests.
 
 ## Adding a variable
 
