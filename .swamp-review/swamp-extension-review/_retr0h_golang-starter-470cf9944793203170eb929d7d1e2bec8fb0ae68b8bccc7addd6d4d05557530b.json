@@ -1,7 +1,7 @@
 {
   "extension": "@retr0h/golang-starter",
-  "version": "2026.09.03.3",
-  "reviewedAt": "2026-09-03T19:45:00Z",
+  "version": "2026.09.03.4",
+  "reviewedAt": "2026-09-03T20:30:00Z",
   "dimensions": [
     {
       "id": "credentials-secrets",
@@ -21,7 +21,7 @@
     {
       "id": "testing-completeness",
       "verdict": "pass",
-      "note": "39 tests. The suite covers the pure functions and execute(), but until now it never loaded a workflow \u2014 every test drove model methods directly, which is exactly the path that hid three defects: the workflows carried no id UUID and so never registered, the model instance was not shipped for consumers to install, and check_prereqs probed go with --version, a flag go rejects. A workflow is now run end to end during development, and check_prereqs is exercised against the real binaries."
+      "note": "48 tests over the pure functions, execute(), and the pre-flight checks. Four were added after a second agent used the extension for real and found what this suite could not see: a generated project could not pass its own just ready. The suite now asserts that a library ships a test for its stub, that a command keeps its logic in internal/ where coverage can reach it, that the golangci config is v2 format rather than v1 keys under a v2 version, and that ready formats markdown rather than checking it."
     },
     {
       "id": "idempotency-resilience",

@@ -461,8 +461,23 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
       dest: `pkg/${pkg}/${pkg}.go`,
       managed: false,
     });
+    files.push({
+      template: "lib_test.go.txt",
+      dest: `pkg/${pkg}/${pkg}_test.go`,
+      managed: false,
+    });
   } else {
     files.push({ template: "main.go.txt", dest: "main.go", managed: false });
+    files.push({
+      template: "cli.go.txt",
+      dest: "internal/cli/cli.go",
+      managed: false,
+    });
+    files.push({
+      template: "cli_test.go.txt",
+      dest: "internal/cli/cli_test.go",
+      managed: false,
+    });
     if (g.withReleaser) {
       files.push({
         template: "goreleaser.yaml",
@@ -538,7 +553,7 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
 /** Model definition for scaffolding a Go project. */
 export const model = {
   type: "@retr0h/go-project",
-  version: "2026.09.03.3",
+  version: "2026.09.03.4",
   globalArguments: GlobalArgsSchema,
   resources: {
     "state": {
@@ -631,6 +646,56 @@ export const model = {
             errors: [
               `No go.mod at ${goMod}. Run create_project and write_files ` +
               "first, or use one of the create-go workflows, which chain them.",
+            ],
+          };
+        }
+        return { pass: true };
+      },
+    },
+    "declared-kind-matches-the-project": {
+      description: "The declared shape matches the project already on disk",
+      labels: ["live"],
+      appliesTo: ["write_files"],
+      execute: async (context: { globalArgs: GlobalArgs }): Promise<
+        CheckResult
+      > => {
+        const g = context.globalArgs;
+        // Only meaningful when re-rendering something that exists. A fresh
+        // scaffold has nothing to disagree with.
+        if (!g.overwrite) return { pass: true };
+
+        const root = projectPathFor(g);
+        const exists = async (rel: string) => {
+          try {
+            await Deno.stat(`${root}/${rel}`);
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
+        const looksLikeCli = await exists("main.go") || await exists("cmd");
+        const looksLikeLib = await exists("pkg");
+
+        if (looksLikeCli && g.kind === "lib") {
+          return {
+            pass: false,
+            errors: [
+              `${root} has main.go or cmd/, so it is a command, but kind is ` +
+              `"lib". Re-rendering would strip /cmd/ and main.go from ` +
+              ".coverignore and describe pkg/ as the product in " +
+              "CONTRIBUTING.md, leaving the project a hybrid of both shapes. " +
+              'Pass kind="cli".',
+            ],
+          };
+        }
+        if (looksLikeLib && !looksLikeCli && g.kind === "cli") {
+          return {
+            pass: false,
+            errors: [
+              `${root} has pkg/ and no main.go, so it is a library, but kind ` +
+              'is "cli". Re-rendering would add a command layout over it. ' +
+              'Pass kind="lib".',
             ],
           };
         }

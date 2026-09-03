@@ -1,4 +1,5 @@
 @@badges@@
+
 # @@projectName@@
 
 @@description@@
@@ -31,8 +32,8 @@ just ready      # everything CI runs
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, setup, conventions
-and the pull request workflow.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, setup, conventions and
+the pull request workflow.
 
 ## License
 

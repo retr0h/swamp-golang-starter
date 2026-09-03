@@ -1,2 +1,10 @@
 // Package @@packageName@@ @@description@@
 package @@packageName@@
+
+// Name reports the name of this package.
+//
+// Replace this with the package's real surface; it exists so a freshly
+// scaffolded project starts at the coverage target rather than below it.
+func Name() string {
+	return "@@projectName@@"
+}

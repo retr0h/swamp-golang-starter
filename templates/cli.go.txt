@@ -1,0 +1,20 @@
+// Package cli holds the command's behaviour.
+//
+// main.go stays a single call so it can be excluded from coverage; everything
+// worth testing lives here.
+package cli
+
+import (
+	"fmt"
+	"os"
+)
+
+// Run executes the command.
+func Run() {
+	_, _ = fmt.Fprintln(os.Stdout, Name())
+}
+
+// Name reports the name of this command.
+func Name() string {
+	return "@@projectName@@"
+}
