@@ -12,6 +12,23 @@ Scaffolds a Go project in one workflow run. Two shapes come from one model:
 | `@retr0h/create-go-lib` | An importable library — `pkg/`, no `main` |
 | `@retr0h/create-go-cli` | A command — `cmd/`, cobra, goreleaser |
 
+## Pre-flight (run before the workflow)
+
+1. `go`, `git` and `just` must be on `PATH`. The first step of every workflow
+   checks this and fails the run if not.
+2. The `go-project` model instance must exist — verify with
+   `swamp model validate go-project`. It does not install itself; copy the
+   definition shipped with the extension:
+
+```bash
+mkdir -p "models/@retr0h/go-project"
+cp ".swamp/pulled-extensions/@retr0h/golang-starter/files/instances/go-project.yaml" \
+   "models/@retr0h/go-project/"
+```
+
+Without this the workflow fails at the first step with
+`Model not found: go-project`.
+
 ## Running it
 
 ```bash
@@ -26,7 +43,7 @@ Inputs, all optional but `project_name`:
 | `owner` | `retr0h` | the module path is `github.com/<owner>/<project_name>` |
 | `description` | `""` | one-line repository description |
 | `parent_dir` | `~/git` | where the project directory is created |
-| `go_version` | `1.25` | written to `go.mod` |
+| `go_version` | `1.26` | language floor written to `go.mod` |
 
 ## What it does not do
 

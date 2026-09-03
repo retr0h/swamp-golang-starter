@@ -21,7 +21,7 @@
     {
       "id": "testing-completeness",
       "verdict": "pass",
-      "note": "38 tests. 28 cover the pure functions; 10 cover execute() and the pre-flight checks against a context this test file supplies, since createModelTestContext offers no extensionFile and Ctx is a plain interface. The execute tests pin what the earlier gap let through: every state write matches StateSchema exactly, a later method preserves the file lists an earlier one recorded, overwrite rewrites generated files and spares seeded ones, no rendered file retains a placeholder, and a refused run writes nothing."
+      "note": "39 tests. The suite covers the pure functions and execute(), but until now it never loaded a workflow \u2014 every test drove model methods directly, which is exactly the path that hid three defects: the workflows carried no id UUID and so never registered, the model instance was not shipped for consumers to install, and check_prereqs probed go with --version, a flag go rejects. A workflow is now run end to end during development, and check_prereqs is exercised against the real binaries."
     },
     {
       "id": "idempotency-resilience",

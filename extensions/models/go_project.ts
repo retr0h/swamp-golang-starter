@@ -647,8 +647,23 @@ export const model = {
         context.logger.info("Checking prerequisites for {project}", {
           project: g.projectName,
         });
-        for (const tool of ["go", "git", "just"]) {
-          await runCommand(tool, ["--version"]);
+        // `go --version` is not valid — Go spells it `go version`, and the
+        // invalid form exits 2 after printing help. git and just take the flag.
+        const probes: Array<[string, string[]]> = [
+          ["go", ["version"]],
+          ["git", ["--version"]],
+          ["just", ["--version"]],
+        ];
+        for (const [tool, probeArgs] of probes) {
+          try {
+            await runCommand(tool, probeArgs);
+          } catch (cause) {
+            throw new Error(
+              `${tool} is required and was not usable. Install it, or if it ` +
+                `is managed by mise, run the workflow through \`mise exec --\` ` +
+                `so it is on PATH.\n${(cause as Error).message}`,
+            );
+          }
         }
         const projectPath = projectPathFor(g);
         context.logger.info("Prerequisites present; target is {path}", {

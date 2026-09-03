@@ -18,6 +18,7 @@ workflows:
 skills:
   - golang-starter
 additionalFiles:
+  - instances/go-project.yaml
   - README.md
   - LICENSE
   - templates/.github/codecov.yml
