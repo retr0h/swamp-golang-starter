@@ -172,7 +172,7 @@ const StateSchema = z.object({
 // --- Context ---
 
 /** The slice of the method context this model uses. */
-interface Ctx {
+export interface Ctx {
   globalArgs: GlobalArgs;
   logger: { info: (m: string, p?: Record<string, unknown>) => void };
   extensionFile: (relPath: string) => string;
@@ -185,6 +185,12 @@ interface Ctx {
     name: string,
     data: Record<string, unknown>,
   ) => Promise<{ name: string }>;
+}
+
+/** The result of a pre-flight check. */
+export interface CheckResult {
+  pass: boolean;
+  errors?: string[];
 }
 
 // --- Helpers ---
@@ -540,6 +546,96 @@ export const model = {
       schema: StateSchema,
       lifetime: "infinite",
       garbageCollection: 10,
+    },
+  },
+  checks: {
+    "code-of-conduct-needs-contact": {
+      description:
+        "A code of conduct names an enforcement contact, or is not written",
+      labels: ["policy"],
+      execute: (context: { globalArgs: GlobalArgs }): Promise<CheckResult> => {
+        const g = context.globalArgs;
+        if (g.withCodeOfConduct && !g.email) {
+          return Promise.resolve({
+            pass: false,
+            errors: [
+              "withCodeOfConduct is on but email is empty. The enforcement " +
+              "section names an address, and one naming the template author " +
+              "is worse than no code of conduct at all. Set email, or set " +
+              "withCodeOfConduct to false.",
+            ],
+          });
+        }
+        return Promise.resolve({ pass: true });
+      },
+    },
+    "shared-justfiles-needs-a-source": {
+      description: "Fetching shared recipes requires somewhere to fetch from",
+      labels: ["policy"],
+      execute: (context: { globalArgs: GlobalArgs }): Promise<CheckResult> => {
+        const g = context.globalArgs;
+        if (g.sharedJustfiles && !g.justfilesRepo) {
+          return Promise.resolve({
+            pass: false,
+            errors: [
+              "sharedJustfiles is on but justfilesRepo is empty. The " +
+              "generated justfile would fetch from nowhere and CI would fail " +
+              "on the first push.",
+            ],
+          });
+        }
+        return Promise.resolve({ pass: true });
+      },
+    },
+    "parent-directory-must-exist": {
+      description: "The parent directory is where the project is created",
+      labels: ["live"],
+      appliesTo: ["create_project"],
+      execute: async (
+        context: { globalArgs: GlobalArgs },
+      ): Promise<CheckResult> => {
+        const parent = expandHome(context.globalArgs.parentDir);
+        try {
+          const info = await Deno.stat(parent);
+          if (!info.isDirectory) {
+            return {
+              pass: false,
+              errors: [`parentDir is not a directory: ${parent}`],
+            };
+          }
+        } catch {
+          return {
+            pass: false,
+            errors: [
+              `parentDir does not exist: ${parent}. Create it, or point ` +
+              "parentDir somewhere that does.",
+            ],
+          };
+        }
+        return { pass: true };
+      },
+    },
+    "project-must-exist-to-build": {
+      description: "bootstrap resolves modules in a project that was created",
+      labels: ["live"],
+      appliesTo: ["bootstrap"],
+      execute: async (
+        context: { globalArgs: GlobalArgs },
+      ): Promise<CheckResult> => {
+        const goMod = `${projectPathFor(context.globalArgs)}/go.mod`;
+        try {
+          await Deno.stat(goMod);
+        } catch {
+          return {
+            pass: false,
+            errors: [
+              `No go.mod at ${goMod}. Run create_project and write_files ` +
+              "first, or use one of the create-go workflows, which chain them.",
+            ],
+          };
+        }
+        return { pass: true };
+      },
     },
   },
   methods: {

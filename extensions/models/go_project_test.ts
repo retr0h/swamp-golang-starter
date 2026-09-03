@@ -287,3 +287,229 @@ Deno.test("a workflow never ships without the config it reads", () => {
   assert(!noRel.includes(".github/workflows/release.yml"));
   assert(!noRel.includes(".goreleaser.yaml"));
 });
+
+// --- execute(), with a context this file supplies ---
+//
+// createModelTestContext does not provide extensionFile, which every write
+// path needs, so the context is built here. Ctx is a plain interface, so this
+// costs nothing and closes the gap the adversarial review recorded: the
+// schema-write defect that review found lived in execute, where no test
+// reached.
+
+import { type CheckResult, model } from "./go_project.ts";
+
+interface Written {
+  specName: string;
+  name: string;
+  data: Record<string, unknown>;
+}
+
+/** A method context backed by a temporary directory. */
+function testContext(overrides: Partial<GlobalArgs> = {}) {
+  const written: Written[] = [];
+  const logs: string[] = [];
+  const stored = new Map<string, Record<string, unknown>>();
+  const repoRoot = new URL("../../", import.meta.url).pathname;
+
+  const context = {
+    globalArgs: args(overrides),
+    logger: {
+      info: (m: string, p?: Record<string, unknown>) =>
+        logs.push(m + JSON.stringify(p ?? {})),
+    },
+    extensionFile: (relPath: string) => `${repoRoot}${relPath}`,
+    readResource: (specName: string, name: string) =>
+      Promise.resolve(stored.get(`${specName}/${name}`)),
+    writeResource: (
+      specName: string,
+      name: string,
+      data: Record<string, unknown>,
+    ) => {
+      written.push({ specName, name, data });
+      stored.set(`${specName}/${name}`, data);
+      return Promise.resolve({ name });
+    },
+  };
+  return { context, written, logs, stored };
+}
+
+/** Run a body against a throwaway directory, always cleaning up. */
+async function withTempDir(body: (dir: string) => Promise<void>) {
+  const dir = await Deno.makeTempDir({ prefix: "golang-starter-test-" });
+  try {
+    await body(dir);
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+}
+
+Deno.test("write_files renders a library into an empty directory", async () => {
+  await withTempDir(async (dir) => {
+    const { context, written } = testContext({
+      projectName: "widget",
+      kind: "lib",
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    const goMod = await Deno.readTextFile(`${dir}/widget/go.mod`);
+    assertEquals(goMod, "module github.com/retr0h/widget\n\ngo 1.26\n");
+
+    // Every placeholder substituted, in every file.
+    for await (const entry of Deno.readDir(`${dir}/widget`)) {
+      if (!entry.isFile) continue;
+      const body = await Deno.readTextFile(`${dir}/widget/${entry.name}`);
+      assert(!body.includes("@@"), `${entry.name} has an unrendered placeholder`);
+    }
+
+    const state = written[0].data;
+    assertEquals(state.status, "files_written");
+    assertEquals((state.filesSkipped as string[]).length, 0);
+    assert((state.filesWritten as string[]).includes("pkg/widget/widget.go"));
+  });
+});
+
+Deno.test("write_files leaves an existing file alone by default", async () => {
+  await withTempDir(async (dir) => {
+    await Deno.mkdir(`${dir}/widget`, { recursive: true });
+    await Deno.writeTextFile(`${dir}/widget/README.md`, "# mine\n");
+
+    const { context, written } = testContext({
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    assertEquals(await Deno.readTextFile(`${dir}/widget/README.md`), "# mine\n");
+    assert((written[0].data.filesSkipped as string[]).includes("README.md"));
+  });
+});
+
+Deno.test("overwrite rewrites generated files and spares seeded ones", async () => {
+  await withTempDir(async (dir) => {
+    await Deno.mkdir(`${dir}/widget/.github/workflows`, { recursive: true });
+    await Deno.writeTextFile(`${dir}/widget/README.md`, "# hand written\n");
+    await Deno.writeTextFile(`${dir}/widget/.github/workflows/go.yml`, "stale\n");
+
+    const { context, written } = testContext({
+      parentDir: dir,
+      overwrite: true,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    // Seeded: untouched, however stale.
+    assertEquals(
+      await Deno.readTextFile(`${dir}/widget/README.md`),
+      "# hand written\n",
+    );
+    // Managed: refreshed.
+    const wf = await Deno.readTextFile(`${dir}/widget/.github/workflows/go.yml`);
+    assert(wf.includes("name: Go"));
+
+    const state = written[0].data;
+    assert((state.filesOverwritten as string[]).includes(
+      ".github/workflows/go.yml",
+    ));
+    assert((state.filesSkipped as string[]).includes("README.md"));
+  });
+});
+
+Deno.test("write_files refuses a code of conduct with no contact", async () => {
+  await withTempDir(async (dir) => {
+    const { context, written } = testContext({ parentDir: dir, email: "" });
+    let threw = false;
+    try {
+      await model.methods.write_files.execute({}, context);
+    } catch (e) {
+      threw = true;
+      assert((e as Error).message.includes("withCodeOfConduct needs email"));
+    }
+    assert(threw, "expected a throw");
+    // Nothing written before the throw.
+    assertEquals(written.length, 0);
+    assertEquals([...Deno.readDirSync(dir)].length, 0);
+  });
+});
+
+Deno.test("a later method preserves the file lists an earlier one recorded", async () => {
+  // Every method writes the whole state resource. Returning [] from one that
+  // does not write files erased what write_files had just recorded.
+  await withTempDir(async (dir) => {
+    const { context, written, stored } = testContext({
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+    const count = (written[0].data.filesWritten as string[]).length;
+    assert(count > 0);
+
+    await model.methods.create_project.execute({}, context);
+    const after = stored.get("state/current")!;
+    assertEquals((after.filesWritten as string[]).length, count);
+    assertEquals(after.status, "created");
+  });
+});
+
+Deno.test("every state write matches StateSchema exactly", async () => {
+  await withTempDir(async (dir) => {
+    const { context, written } = testContext({
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+    await model.methods.create_project.execute({}, context);
+
+    const fields = new Set([
+      "projectName", "projectPath", "modulePath", "kind", "goVersion",
+      "filesWritten", "filesSkipped", "filesOverwritten", "status", "updatedAt",
+    ]);
+    for (const w of written) {
+      assertEquals(
+        new Set(Object.keys(w.data)),
+        fields,
+        "a state write drifted from StateSchema",
+      );
+    }
+  });
+});
+
+// --- pre-flight checks ---
+
+Deno.test("the code of conduct check fails before anything is created", async () => {
+  const { context } = testContext({ email: "" });
+  const result = await model.checks["code-of-conduct-needs-contact"]
+    .execute(context);
+  assertEquals(result.pass, false);
+  assert(result.errors![0].includes("withCodeOfConduct is on but email"));
+});
+
+Deno.test("the shared justfiles check fails with no source", async () => {
+  const { context } = testContext({ sharedJustfiles: true, justfilesRepo: "" });
+  const result = await model.checks["shared-justfiles-needs-a-source"]
+    .execute(context);
+  assertEquals(result.pass, false);
+});
+
+Deno.test("checks pass on a well-formed configuration", async () => {
+  const { context } = testContext({ email: "maintainer@example.com" });
+  const checks: Array<keyof typeof model.checks> = [
+    "code-of-conduct-needs-contact",
+    "shared-justfiles-needs-a-source",
+  ];
+  for (const name of checks) {
+    const result: CheckResult = await model.checks[name].execute(context);
+    assertEquals(result.pass, true, name);
+  }
+});
+
+Deno.test("bootstrap refuses a directory with no go.mod", async () => {
+  await withTempDir(async (dir) => {
+    const { context } = testContext({ parentDir: dir });
+    const result = await model.checks["project-must-exist-to-build"]
+      .execute(context);
+    assertEquals(result.pass, false);
+    assert(result.errors![0].includes("No go.mod"));
+  });
+});
