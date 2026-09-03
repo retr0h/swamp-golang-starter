@@ -49,7 +49,8 @@ additionalFiles:
   - templates/go.mod.txt
   - templates/golangci.yml
   - templates/goreleaser.yaml
-  - templates/justfile-shared.txt
+  - templates/internal.go.txt
+  - templates/internal_test.go.txt
   - templates/justfile.txt
   - templates/lib.go.txt
   - templates/lib_test.go.txt

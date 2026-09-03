@@ -1,0 +1,7 @@
+// Package @@packageName@@ @@description@@
+package @@packageName@@
+
+// Name reports the name of this command.
+func Name() string {
+	return "@@projectName@@"
+}

@@ -107,12 +107,6 @@ export const GlobalArgsSchema = z.object({
     ),
 
   // Gates
-  sharedJustfiles: z
-    .boolean()
-    .default(false)
-    .describe(
-      "Fetch build recipes from a shared justfiles repository instead of writing a self-contained justfile. Off by default: it couples every generated project to one URL, which suits a single organization and nobody else.",
-    ),
   justfilesRepo: z
     .string()
     .default(
@@ -435,11 +429,7 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
     { template: "coverignore.txt", dest: ".coverignore", managed: true },
     { template: "mise.toml.txt", dest: ".mise.toml", managed: true },
     { template: "golangci.yml", dest: ".golangci.yml", managed: true },
-    {
-      template: g.sharedJustfiles ? "justfile-shared.txt" : "justfile.txt",
-      dest: "justfile",
-      managed: true,
-    },
+    { template: "justfile.txt", dest: "justfile", managed: true },
   ];
 
   if (g.withCodeOfConduct) {
@@ -471,6 +461,18 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
     files.push({
       template: "cmd_root.go.txt",
       dest: "cmd/root.go",
+      managed: false,
+    });
+    // cmd/ and main.go are excluded from coverage, so a command needs a
+    // package the gate can reach — the same shape gohai has.
+    files.push({
+      template: "internal.go.txt",
+      dest: `internal/${pkg}/${pkg}.go`,
+      managed: false,
+    });
+    files.push({
+      template: "internal_test.go.txt",
+      dest: `internal/${pkg}/${pkg}_test.go`,
       managed: false,
     });
     if (g.withReleaser) {
@@ -579,18 +581,18 @@ export const model = {
         return Promise.resolve({ pass: true });
       },
     },
-    "shared-justfiles-needs-a-source": {
-      description: "Fetching shared recipes requires somewhere to fetch from",
+    "justfiles-need-a-source": {
+      description: "The generated justfile fetches its recipes from somewhere",
       labels: ["policy"],
       execute: (context: { globalArgs: GlobalArgs }): Promise<CheckResult> => {
         const g = context.globalArgs;
-        if (g.sharedJustfiles && !g.justfilesRepo) {
+        if (!g.justfilesRepo) {
           return Promise.resolve({
             pass: false,
             errors: [
-              "sharedJustfiles is on but justfilesRepo is empty. The " +
-              "generated justfile would fetch from nowhere and CI would fail " +
-              "on the first push.",
+              "justfilesRepo is empty. The generated justfile fetches its " +
+              "recipes at run time, so it would fetch from nowhere and CI " +
+              "would fail on the first push.",
             ],
           });
         }

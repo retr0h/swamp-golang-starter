@@ -140,15 +140,6 @@ Deno.test("planFor honours every gate", () => {
   assert(dests.includes("justfile"));
 });
 
-Deno.test("planFor picks the justfile variant from sharedJustfiles", () => {
-  const standalone = planFor(args({ sharedJustfiles: false }))
-    .find((e) => e.dest === "justfile");
-  const shared = planFor(args({ sharedJustfiles: true }))
-    .find((e) => e.dest === "justfile");
-  assertEquals(standalone?.template, "justfile.txt");
-  assertEquals(shared?.template, "justfile-shared.txt");
-});
-
 Deno.test("planFor never emits a duplicate destination", () => {
   const dests = planFor(args({ kind: "cli" })).map((e) => e.dest);
   assertEquals(dests.length, new Set(dests).size);
@@ -255,23 +246,6 @@ Deno.test("every template the plan names is listed once", () => {
 
 // --- coupling between the workflows and everything they invoke ---
 
-Deno.test("both justfile variants implement every recipe CI invokes", () => {
-  // .github/workflows/ calls these by name. A variant missing one turns CI red
-  // on the first push, and the standalone variant is the default.
-  const required = ["fetch", "deps", "test", "md-fmt-check", "just-fmt-check"];
-  for (const variant of ["justfile.txt", "justfile-shared.txt"]) {
-    const body = Deno.readTextFileSync(
-      new URL(`../../templates/${variant}`, import.meta.url),
-    );
-    for (const recipe of required) {
-      assert(
-        new RegExp(`^${recipe}:`, "m").test(body) ||
-          body.includes(`.just/remote/`),
-        `${variant} does not provide '${recipe}'`,
-      );
-    }
-  }
-});
 
 Deno.test("a workflow never ships without the config it reads", () => {
   const noLabeler = planFor(args({ withLabeler: false })).map((e) => e.dest);
@@ -485,9 +459,9 @@ Deno.test("the code of conduct check fails before anything is created", async ()
   assert(result.errors![0].includes("withCodeOfConduct is on but email"));
 });
 
-Deno.test("the shared justfiles check fails with no source", async () => {
-  const { context } = testContext({ sharedJustfiles: true, justfilesRepo: "" });
-  const result = await model.checks["shared-justfiles-needs-a-source"]
+Deno.test("the justfiles check fails with no source", async () => {
+  const { context } = testContext({ justfilesRepo: "" });
+  const result = await model.checks["justfiles-need-a-source"]
     .execute(context);
   assertEquals(result.pass, false);
 });
@@ -496,7 +470,7 @@ Deno.test("checks pass on a well-formed configuration", async () => {
   const { context } = testContext({ email: "maintainer@example.com" });
   const checks: Array<keyof typeof model.checks> = [
     "code-of-conduct-needs-contact",
-    "shared-justfiles-needs-a-source",
+    "justfiles-need-a-source",
   ];
   for (const name of checks) {
     const result: CheckResult = await model.checks[name].execute(context);
@@ -650,20 +624,6 @@ Deno.test("a command puts its definitions in cmd/, untested", () => {
   );
 });
 
-Deno.test("everything a command ships is excluded from coverage", () => {
-  // Which is why cov-check must pass on an empty profile rather than
-  // reporting 0% against the target.
-  const ignore = varsFor(args({ kind: "cli" })).coverPaths;
-  assert(ignore.includes("main.go"), "main.go must be excluded");
-  assert(ignore.includes("/cmd/"), "/cmd/ must be excluded");
-  const justfile = Deno.readTextFileSync(
-    new URL("../../templates/justfile.txt", import.meta.url),
-  );
-  assert(
-    justfile.includes("no measurable statements"),
-    "cov-check must tolerate a fully excluded project",
-  );
-});
 
 Deno.test("golangci config is v2 format, not v1 keys under a v2 version", () => {
   // `version: 2` with linters-settings/exclude-use-default is rejected by
@@ -678,15 +638,45 @@ Deno.test("golangci config is v2 format, not v1 keys under a v2 version", () => 
   assert(cfg.includes("  settings:"), "v2 nests settings under linters");
 });
 
-Deno.test("ready formats markdown rather than checking it", () => {
-  // Substituting a longer description pushes a wrapped line past 80 columns,
-  // so a fresh scaffold cannot pass md-fmt-check until it has been formatted
-  // once. CI still runs the check.
+
+Deno.test("the justfile is the one this organization already runs", () => {
+  // Not an invention. It imports the shared modules and delegates, so the
+  // coverage gate, the formatters and the linters are osapi-justfiles' rather
+  // than a second implementation free to drift from them.
   const justfile = Deno.readTextFileSync(
     new URL("../../templates/justfile.txt", import.meta.url),
   );
-  const ready = justfile.split("\n").find((l) => l.startsWith("ready:"))!;
-  assert(ready.includes("md-fmt"), "ready must format markdown");
-  assert(!ready.includes("md-fmt-check"), "ready must not run the check");
-  assert(justfile.includes("md-fmt-check:"), "the check must still exist for CI");
+  for (const mod of ["go.just", "md.just", "just.just"]) {
+    assert(justfile.includes(`.just/remote/${mod}`), `does not import ${mod}`);
+  }
+  for (const recipe of ["fetch:", "deps:", "test:", "generate:", "ready:"]) {
+    assert(justfile.includes(`\n${recipe}`), `missing recipe ${recipe}`);
+  }
+  // ready delegates; it does not reimplement.
+  for (const step of [
+    "just generate",
+    "just md-fmt",
+    "just go-fmt",
+    "just go-vet",
+    "just just-fmt",
+  ]) {
+    assert(justfile.includes(step), `ready does not run ${step}`);
+  }
+});
+
+Deno.test("a command's coverage comes from internal, not cmd", () => {
+  // cmd/ and main.go are in .coverignore, so a command whose only code is
+  // there has nothing the gate can measure.
+  const dests = planFor(args({ kind: "cli" })).map((e) => e.dest);
+  assert(dests.includes("cmd/root.go"));
+  assert(dests.includes("internal/widget/widget.go"));
+  assert(dests.includes("internal/widget/widget_test.go"));
+  assert(
+    !dests.some((d) => d.startsWith("cmd/") && d.endsWith("_test.go")),
+    "cmd/ ships no tests",
+  );
+
+  const ignore = varsFor(args({ kind: "cli" })).coverPaths;
+  assert(ignore.includes("/cmd/") && ignore.includes("main.go"));
+  assert(!ignore.includes("/internal/"), "internal/ must stay measurable");
 });

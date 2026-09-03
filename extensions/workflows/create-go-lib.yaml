@@ -75,14 +75,10 @@ inputs:
       type: boolean
       default: false
       description: Re-render over files that already exist, discarding local edits
-    shared_justfiles:
-      type: boolean
-      default: false
-      description: Fetch build recipes from a shared justfiles repository
     justfiles_repo:
       type: string
       default: "https://raw.githubusercontent.com/osapi-io/osapi-justfiles/refs/heads/main"
-      description: Base URL for shared recipes; only used when shared_justfiles is on
+      description: Base URL the generated justfile fetches shared recipes from
     with_ci:
       type: boolean
       default: true
@@ -143,7 +139,6 @@ jobs:
             go_version_mise: ${{ inputs.go_version_mise }}
             go_version_ci: ${{ inputs.go_version_ci }}
             overwrite: ${{ inputs.overwrite }}
-            shared_justfiles: ${{ inputs.shared_justfiles }}
             justfiles_repo: ${{ inputs.justfiles_repo }}
             with_ci: ${{ inputs.with_ci }}
             with_releaser: ${{ inputs.with_releaser }}
@@ -183,7 +178,6 @@ jobs:
             go_version_mise: ${{ inputs.go_version_mise }}
             go_version_ci: ${{ inputs.go_version_ci }}
             overwrite: ${{ inputs.overwrite }}
-            shared_justfiles: ${{ inputs.shared_justfiles }}
             justfiles_repo: ${{ inputs.justfiles_repo }}
             with_ci: ${{ inputs.with_ci }}
             with_releaser: ${{ inputs.with_releaser }}
@@ -223,7 +217,6 @@ jobs:
             go_version_mise: ${{ inputs.go_version_mise }}
             go_version_ci: ${{ inputs.go_version_ci }}
             overwrite: ${{ inputs.overwrite }}
-            shared_justfiles: ${{ inputs.shared_justfiles }}
             justfiles_repo: ${{ inputs.justfiles_repo }}
             with_ci: ${{ inputs.with_ci }}
             with_releaser: ${{ inputs.with_releaser }}
@@ -263,7 +256,6 @@ jobs:
             go_version_mise: ${{ inputs.go_version_mise }}
             go_version_ci: ${{ inputs.go_version_ci }}
             overwrite: ${{ inputs.overwrite }}
-            shared_justfiles: ${{ inputs.shared_justfiles }}
             justfiles_repo: ${{ inputs.justfiles_repo }}
             with_ci: ${{ inputs.with_ci }}
             with_releaser: ${{ inputs.with_releaser }}

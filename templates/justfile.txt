@@ -1,104 +1,41 @@
 set allow-duplicate-variables
 
-# Coverage target. Declared again in .github/codecov.yml, which gates the same
-# number on the pull request. Neither system can read the other's config, so it
-# lives in both places — change both together.
-coverage_target := "@@coverageTarget@@"
+# Optional modules: mod? allows `just fetch` to work before .just/remote/ exists.
+import? '.just/remote/go.just'
+import? '.just/remote/md.just'
+import? '.just/remote/just.just'
 
-default:
-    @just --list
+# No documentation site, so md formats every markdown file in the repository.
+md_site_dir := ""
 
-# --- The recipes CI calls ---
-#
-# .github/workflows/ invokes fetch, deps, test, md-fmt-check and
-# just-fmt-check. Both justfile variants implement all five, so the same
-# workflows work whether or not this project uses shared recipes.
+# --- Fetch ---
 
-# No shared recipes to fetch — this justfile is self-contained.
+# Fetch shared justfiles from osapi-justfiles
 fetch:
-    @echo "nothing to fetch — self-contained justfile"
+    mkdir -p .just/remote
+    curl -sSfL @@justfilesRepo@@/go/go.just -o .just/remote/go.just
+    curl -sSfL @@justfilesRepo@@/md/md.just -o .just/remote/md.just
+    curl -sSfL @@justfilesRepo@@/just/just.just -o .just/remote/just.just
+
+# --- Top-level orchestration ---
 
 # Install all dependencies
 deps:
-    go mod download
-    go mod tidy
+    just go-deps
+    just go-mod
 
-# Run the tests with coverage, then gate on the target
-test: go-test cov-check
+# Run all tests
+test:
+    just go-test
 
-# Format the markdown
-md-fmt:
-    uvx --from mdformat mdformat --number --wrap 80 .
-
-# Check markdown formatting — what CI runs
-md-fmt-check:
-    uvx --from mdformat mdformat --check --number --wrap 80 .
-
-# Format the justfile
-just-fmt:
-    just --unstable --fmt
-
-# Check justfile formatting — what CI runs
-just-fmt-check:
-    just --unstable --fmt --check
-
-# --- Go ---
-
-# Run code generation
-#
-# `go generate ./...` honours the //go:generate directives in the source, so
-# adding a generator is a comment in the file that needs it rather than a
-# change here. Override this recipe when a project needs more than that.
+# Generate code
 generate:
-    go generate ./...
+    just go-generate
 
-# Run the tests with coverage
-#
-# The profile is filtered through .coverignore before the gate reads it, the
-# way the shared justfiles do, so excluded files never count against the
-# target and never reach a coverage service.
-go-test:
-    mkdir -p .coverage
-    go test -race -coverprofile=.coverage/cover.out ./...
-    grep -v -f .coverignore .coverage/cover.out > .coverage/cover.tmp && mv .coverage/cover.tmp .coverage/cover.out
-
-# Fail when total coverage is below the target
-cov-check:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    # Everything in a freshly scaffolded command is excluded by .coverignore,
-    # so the filtered profile holds no statements. Nothing uncovered is not a
-    # failure — report it and pass.
-    if [ "$(wc -l < .coverage/cover.out)" -le 1 ]; then
-        echo "coverage: no measurable statements — every file is in .coverignore"
-        exit 0
-    fi
-    total=$(go tool cover -func=.coverage/cover.out | awk '/^total:/ {print $3}' | tr -d '%')
-    target=$(echo "{{ coverage_target }}" | tr -d '%')
-    echo "coverage: ${total}% (target ${target}%)"
-    awk -v t="$total" -v g="$target" 'BEGIN { exit (t+0 >= g+0) ? 0 : 1 }'
-
-# Install the tools go.mod pins
-tools:
-    go get -tool mvdan.cc/gofumpt
-    go get -tool github.com/segmentio/golines
-    go get -tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
-    go get -tool github.com/boumenot/gocover-cobertura
-    go get -tool go.uber.org/mock/mockgen
-
-# Run the linters
-#
-# Through `go tool`, not a global binary: go.mod pins the version, so every
-# machine and CI run the same linter.
-lint:
-    go tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint run --config .golangci.yml
-
-# Format the source
-fmt:
-    go tool mvdan.cc/gofumpt -w .
-    go tool github.com/segmentio/golines -w --max-len=80 .
-
-# --- Orchestration ---
-
-# Everything CI runs
-ready: deps tools generate fmt md-fmt just-fmt lint test
+# Format, lint, and generate before committing
+ready:
+    just generate
+    just md-fmt
+    just go-fmt
+    just go-vet
+    just just-fmt
