@@ -35,5 +35,10 @@ jobs:
       # Bundles the extension and validates the whole manifest (models,
       # skills, labels, TypeScript bundle, manifest schema) without
       # touching the registry.
+      # The review report is bound to a content hash, so it lives in the
+      # repository rather than the system temp directory a local run uses.
+      # The override needs an absolute path.
       - name: swamp extension push --dry-run
         run: swamp extension push manifest.yaml --dry-run
+        env:
+          SWAMP_EXTENSION_REVIEW_DIR: ${{ github.workspace }}/.swamp-review

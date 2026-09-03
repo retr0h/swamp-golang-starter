@@ -34,6 +34,21 @@ scaffolder that copies would manufacture that problem rather than solve it.
 mise install                              # deno
 swamp extension fmt manifest.yaml         # format and lint
 swamp extension push manifest.yaml --dry-run   # validate without publishing
+~/.swamp/deno/deno test --allow-read --allow-env extensions/models/
 ```
+
+### Adversarial review
+
+`swamp extension push` checks for a review report bound to a content hash of
+the source, so any change requires a fresh one. Reports live in
+`.swamp-review/` rather than the system temp directory a local run defaults to:
+
+```bash
+SWAMP_EXTENSION_REVIEW_DIR="$PWD/.swamp-review" \
+  swamp extension push manifest.yaml --dry-run
+```
+
+The current report records two open issues, deliberately: `execute()` is not
+unit tested, and the mutating methods carry no labelled pre-flight checks.
 
 [swamp]: https://swamp-club.com
