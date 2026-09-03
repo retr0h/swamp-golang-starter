@@ -680,3 +680,27 @@ Deno.test("a command's coverage comes from internal, not cmd", () => {
   assert(ignore.includes("/cmd/") && ignore.includes("main.go"));
   assert(!ignore.includes("/internal/"), "internal/ must stay measurable");
 });
+
+Deno.test("revive's threshold rules are disabled, the rest are on", () => {
+  // enable-all-rules turns on rules that measure rather than find:
+  // line-length-limit alone was 35 of 50 findings on gohai, duplicating what
+  // golines --max-len=80 already enforces in go-fmt.
+  const cfg = Deno.readTextFileSync(
+    new URL("../../templates/golangci.yml", import.meta.url),
+  );
+  assert(cfg.includes("enable-all-rules: true"));
+  for (const rule of [
+    "line-length-limit",
+    "add-constant",
+    "cyclomatic",
+    "cognitive-complexity",
+    "function-length",
+    "argument-limit",
+    "max-public-structs",
+  ]) {
+    assert(
+      new RegExp(`- name: ${rule}\\s+disabled: true`).test(cfg),
+      `${rule} must be disabled`,
+    );
+  }
+});

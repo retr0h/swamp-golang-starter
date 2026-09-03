@@ -1,5 +1,10 @@
 # golangci-lint v2 configuration.
 # https://golangci-lint.run/docs/configuration/file/
+#
+# `version` is the string "2", and settings nest under `linters`. Written the
+# v1 way — a numeric version, a top-level `linters-settings`, an
+# `issues.exclude-use-default` — `run` drops the keys without complaint and the
+# settings never take effect. `golangci-lint config verify` is the check.
 
 version: "2"
 
@@ -19,7 +24,33 @@ linters:
     - unused
   settings:
     revive:
+      # Every rule, minus the ones that measure rather than find. Those flag
+      # code for crossing a number somebody picked, and the numbers here are
+      # already enforced elsewhere or not worth enforcing.
       enable-all-rules: true
+      rules:
+        # golines --max-len=80 in `just go-fmt` already wraps every line.
+        - name: line-length-limit
+          disabled: true
+        # Flags every literal, os.Exit(1) included.
+        - name: add-constant
+          disabled: true
+        # Thresholds, not defects.
+        - name: cyclomatic
+          disabled: true
+        - name: cognitive-complexity
+          disabled: true
+        - name: function-length
+          disabled: true
+        - name: argument-limit
+          disabled: true
+        - name: max-public-structs
+          disabled: true
+        # Style choices this project does not make.
+        - name: banned-characters
+          disabled: true
+        - name: file-header
+          disabled: true
   exclusions:
     presets:
       - comments
