@@ -1,7 +1,7 @@
 {
   "extension": "@retr0h/golang-starter",
-  "version": "2026.09.03.1",
-  "reviewedAt": "2026-09-03T05:52:00Z",
+  "version": "2026.09.02.1",
+  "reviewedAt": "2026-09-03T06:15:00Z",
   "dimensions": [
     {
       "id": "credentials-secrets",
@@ -11,7 +11,7 @@
     {
       "id": "logging-quality",
       "verdict": "pass",
-      "note": "All four methods log at info on entry and on completion, with structured placeholders throughout — context.logger.info('Wrote {written}, overwrote {overwritten}, skipped {skipped}', {...}). No string interpolation into messages. Nothing sensitive is logged; the email argument never reaches a log line."
+      "note": "All four methods log at info on entry and on completion, with structured placeholders throughout \u2014 context.logger.info('Wrote {written}, overwrote {overwritten}, skipped {skipped}', {...}). No string interpolation into messages. Nothing sensitive is logged; the email argument never reaches a log line."
     },
     {
       "id": "error-handling",
@@ -21,12 +21,12 @@
     {
       "id": "testing-completeness",
       "verdict": "issue",
-      "note": "28 tests cover the pure functions — render, planFor, badgesFor, varsFor, the schema, and the coupling between workflows and the configs they read. They found a real defect on their first run: CODE_OF_CONDUCT.md was in the plan twice and ungated. But execute() itself is untested, because it needs extensionFile and createModelTestContext does not provide it. The gap is real and known: the schema-write violation fixed during this review lived in execute and no test would have caught it."
+      "note": "28 tests cover the pure functions \u2014 render, planFor, badgesFor, varsFor, the schema, and the coupling between workflows and the configs they read. They found a real defect on their first run: CODE_OF_CONDUCT.md was in the plan twice and ungated. But execute() itself is untested, because it needs extensionFile and createModelTestContext does not provide it. The gap is real and known: the schema-write violation fixed during this review lived in execute and no test would have caught it."
     },
     {
       "id": "idempotency-resilience",
       "verdict": "pass",
-      "note": "write_files skips an existing file unless overwrite is on, and overwrite reaches generated files only, never the seeded ones a project has since written. create_project is idempotent: mkdir is recursive and git init on an existing repository is a no-op. Partial failure leaves partially written files, which is acceptable here because a re-run completes rather than conflicts — the operation is file creation in a directory the user named, not a remote resource that could orphan."
+      "note": "write_files skips an existing file unless overwrite is on, and overwrite reaches generated files only, never the seeded ones a project has since written. create_project is idempotent: mkdir is recursive and git init on an existing repository is a no-op. Partial failure leaves partially written files, which is acceptable here because a re-run completes rather than conflicts \u2014 the operation is file creation in a directory the user named, not a remote resource that could orphan."
     },
     {
       "id": "api-contracts",
@@ -36,7 +36,7 @@
     {
       "id": "resource-management",
       "verdict": "pass",
-      "note": "No sockets, handles or temporary files. File access is Deno.readTextFile and Deno.writeTextFile, which manage their own handles. Deno.Command output is fully buffered and consumed. Nothing is created that would need later cleanup — the model's only durable effect is the project directory the caller asked for."
+      "note": "No sockets, handles or temporary files. File access is Deno.readTextFile and Deno.writeTextFile, which manage their own handles. Deno.Command output is fully buffered and consumed. Nothing is created that would need later cleanup \u2014 the model's only durable effect is the project directory the caller asked for."
     },
     {
       "id": "published-surface-hygiene",
@@ -61,7 +61,7 @@
     {
       "id": "preflight-checks",
       "verdict": "issue",
-      "note": "The mutating methods carry no labelled pre-flight checks. check_prereqs is effectively one — it verifies go, git and just before anything is created — but it is a separate method rather than a labelled check on create_project and write_files, so it cannot be selectively skipped and nothing stops someone running write_files alone. That is exactly what the retemplate workflow does deliberately, so the shape is intentional, but the labels are missing."
+      "note": "The mutating methods carry no labelled pre-flight checks. check_prereqs is effectively one \u2014 it verifies go, git and just before anything is created \u2014 but it is a separate method rather than a labelled check on create_project and write_files, so it cannot be selectively skipped and nothing stops someone running write_files alone. That is exactly what the retemplate workflow does deliberately, so the shape is intentional, but the labels are missing."
     },
     {
       "id": "instance-names",
