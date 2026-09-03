@@ -1,10 +1,15 @@
 # golangci-lint v2 configuration.
 # https://golangci-lint.run/docs/configuration/file/
 #
-# `version` is the string "2", and settings nest under `linters`. Written the
-# v1 way — a numeric version, a top-level `linters-settings`, an
-# `issues.exclude-use-default` — `run` drops the keys without complaint and the
-# settings never take effect. `golangci-lint config verify` is the check.
+# One config, copied byte for byte into every Go repository in osapi-io. A
+# repository that needs a change to it changes it here too, and the change goes
+# back out to the others in the same pass — a rule that fires in five places and
+# is tuned in one is not the same rule any more.
+#
+# `version` is the string "2" and settings nest under `linters`. Written the v1
+# way — a numeric version, a top-level `linters-settings`, an
+# `issues.exclude-use-default` — `run` drops the keys without complaint and
+# nothing takes effect. `golangci-lint config verify` is the check.
 
 version: "2"
 
@@ -24,39 +29,43 @@ linters:
     - unused
   settings:
     revive:
-      # Every rule, minus the ones that measure rather than find. Those flag
-      # code for crossing a number somebody picked, and the numbers here are
-      # already enforced elsewhere or not worth enforcing.
       enable-all-rules: true
       rules:
-        # golines --max-len=80 in `just go-fmt` already wraps every line.
+        # golines --max-len=80 in `just go-fmt` wraps code at 80. It cannot
+        # wrap a doc comment or a log string, which is all this rule ever
+        # fires on: doc comments and log strings.
         - name: line-length-limit
           disabled: true
-        # Flags every literal, os.Exit(1) included.
+        # 0, 1 and 2 are not magic. `i+1`, `parts[0]` and `Times(1)` hide
+        # nothing, and naming them makes the code worse. Left at its defaults
+        # this rule spends most of its findings on the literal 1.
         - name: add-constant
-          disabled: true
-        # Thresholds, not defects.
-        - name: cyclomatic
-          disabled: true
-        - name: cognitive-complexity
-          disabled: true
-        - name: function-length
-          disabled: true
-        - name: argument-limit
-          disabled: true
-        - name: max-public-structs
-          disabled: true
-        # Style choices this project does not make.
-        - name: banned-characters
-          disabled: true
-        - name: file-header
-          disabled: true
+          arguments:
+            - allowInts: "0,1,2"
+              allowStrs: '""'
+              maxLitCount: "3"
   exclusions:
     presets:
       - comments
       - std-error-handling
+    rules:
+      # These three rules ask whether a function does too much. A table-driven
+      # test does not: it holds a list of cases and one small loop. revive
+      # counts the whole literal, closures included, so a ten-case table reads
+      # as complexity twenty while the loop body under it branches twice.
+      #
+      # They stay on for production, where they find functions genuinely worth
+      # splitting.
+      - path: _test\.go$
+        text: "function-length|cognitive-complexity|cyclomatic"
 
 formatters:
   enable:
     - gofmt
     - goimports
+
+issues:
+  # Without these every run stops at 50 findings per linter and the repository
+  # looks like it has exactly 50 problems, forever.
+  max-issues-per-linter: 0
+  max-same-issues: 0

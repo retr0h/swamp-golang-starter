@@ -681,26 +681,29 @@ Deno.test("a command's coverage comes from internal, not cmd", () => {
   assert(!ignore.includes("/internal/"), "internal/ must stay measurable");
 });
 
-Deno.test("revive's threshold rules are disabled, the rest are on", () => {
-  // enable-all-rules turns on rules that measure rather than find:
-  // line-length-limit alone was 35 of 50 findings on gohai, duplicating what
-  // golines --max-len=80 already enforces in go-fmt.
+Deno.test("the golangci config matches what the Go repositories run", () => {
+  // One config in six places. When a repository needs a change to it, the
+  // change comes back here — otherwise a newly scaffolded project starts
+  // behind the projects it is modelled on.
   const cfg = Deno.readTextFileSync(
     new URL("../../templates/golangci.yml", import.meta.url),
   );
+  assert(cfg.includes('version: "2"'), 'version must be the string "2"');
   assert(cfg.includes("enable-all-rules: true"));
-  for (const rule of [
-    "line-length-limit",
-    "add-constant",
-    "cyclomatic",
-    "cognitive-complexity",
-    "function-length",
-    "argument-limit",
-    "max-public-structs",
-  ]) {
-    assert(
-      new RegExp(`- name: ${rule}\\s+disabled: true`).test(cfg),
-      `${rule} must be disabled`,
-    );
-  }
+
+  // line-length-limit is the one rule switched off outright: golines wraps
+  // code at 80 and cannot wrap a doc comment.
+  assert(/- name: line-length-limit\s+disabled: true/.test(cfg));
+
+  // add-constant is tuned rather than disabled — 0, 1 and 2 are not magic.
+  assert(cfg.includes('allowInts: "0,1,2"'));
+
+  // The threshold rules stay on for production and off in tests, where they
+  // measure the table rather than the code.
+  assert(/- path: _test\\\.go\$/.test(cfg), "the exclusion must be anchored");
+  assert(cfg.includes("function-length|cognitive-complexity|cyclomatic"));
+
+  // Without these every run silently truncates at 50 findings per linter.
+  assert(cfg.includes("max-issues-per-linter: 0"));
+  assert(cfg.includes("max-same-issues: 0"));
 });
