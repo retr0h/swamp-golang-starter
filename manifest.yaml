@@ -1,6 +1,6 @@
 manifestVersion: 1
 name: "@retr0h/golang-starter"
-version: "2026.09.02.1"
+version: "2026.09.03.1"
 description: "Scaffold a Go project — module, justfile, CI workflows, linters and release config in one workflow. Library and CLI variants."
 repository: https://github.com/retr0h/swamp-golang-starter
 labels:
@@ -18,6 +18,8 @@ workflows:
 skills:
   - golang-starter
 additionalFiles:
+  - README.md
+  - LICENSE
   - templates/.github/codecov.yml
   - templates/.github/delete-merged-branch-config.yml
   - templates/.github/dependabot.yml
