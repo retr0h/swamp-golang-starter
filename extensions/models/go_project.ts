@@ -565,7 +565,6 @@ export const model = {
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
-          goVersionMise: g.goVersionMise,
           status: "prereqs_checked",
           updatedAt: new Date().toISOString(),
         });
@@ -593,7 +592,6 @@ export const model = {
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
-          goVersionMise: g.goVersionMise,
           status: "created",
           updatedAt: new Date().toISOString(),
         });
@@ -668,7 +666,6 @@ export const model = {
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
-          goVersionMise: g.goVersionMise,
           filesWritten: written,
           filesSkipped: skipped,
           filesOverwritten: overwritten,
@@ -700,7 +697,6 @@ export const model = {
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
-          goVersionMise: g.goVersionMise,
           status: "bootstrapped",
           updatedAt: new Date().toISOString(),
         });
