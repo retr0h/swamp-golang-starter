@@ -60,7 +60,23 @@ const GlobalArgsSchema = z.object({
   coverageTarget: z
     .string()
     .default("100%")
-    .describe("Codecov project and patch target"),
+    .describe(
+      "Coverage target. Written to both .github/codecov.yml and the justfile, because neither can read the other's config.",
+    ),
+  defaultBranch: z
+    .string()
+    .default("main")
+    .describe("Branch the CI workflows and branch protection target"),
+  runsOn: z
+    .string()
+    .default("ubuntu-latest")
+    .describe("GitHub Actions runner label"),
+  goVersionCI: z
+    .string()
+    .default("stable")
+    .describe(
+      "Go version CI installs. Separate from goVersion, which pins the language version in go.mod: CI usually wants the newest toolchain, not the module's floor.",
+    ),
 
   // Gates
   sharedJustfiles: z
@@ -91,6 +107,12 @@ const GlobalArgsSchema = z.object({
     .boolean()
     .default(true)
     .describe("AGENTS.md and CLAUDE.md"),
+  overwrite: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Re-render over files that already exist. Off by default because it discards local edits. Point parentDir and projectName at an existing repository to refresh it from the current templates.",
+    ),
   withReposJson: z
     .boolean()
     .default(false)
@@ -109,6 +131,7 @@ const StateSchema = z.object({
   goVersion: z.string(),
   filesWritten: z.array(z.string()).default([]),
   filesSkipped: z.array(z.string()).default([]),
+  filesOverwritten: z.array(z.string()).default([]),
   status: z.enum([
     "prereqs_checked",
     "created",
@@ -180,17 +203,23 @@ function projectPathFor(g: GlobalArgs): string {
 }
 
 /**
- * Substitute `{{ key }}` placeholders.
+ * Substitute `@@key@@` placeholders.
  *
- * Only `{{ word }}` is a placeholder — whitespace, then word characters, then
- * whitespace. That deliberately leaves two neighbouring syntaxes alone:
- * goreleaser's `{{.Version}}` and GitHub Actions' `${{ secrets.TOKEN }}` both
- * carry a dot, so `\w+` never matches them and they reach the generated file
- * untouched.
+ * The delimiter is deliberately not `{{ }}`. Three tools in a generated
+ * project already own that syntax and one of them collides outright:
+ *
+ *   just              `{{ coverage_target }}`   — same shape, same spacing
+ *   goreleaser        `{{.Version}}`
+ *   GitHub Actions    `${{ secrets.TOKEN }}`
+ *
+ * A justfile template cannot use `{{ }}` for scaffolding variables and also
+ * carry just's own, so the scaffolder yields the syntax rather than escaping
+ * around it. Nothing in the Go, YAML, TOML, just, goreleaser or Actions
+ * stack uses `@@`.
  */
 function render(template: string, vars: Record<string, string>): string {
   return template.replace(
-    /\{\{\s*(\w+)\s*\}\}/g,
+    /@@(\w+)@@/g,
     (_match, key: string) => {
       if (!(key in vars)) {
         throw new Error(`Template referenced unknown variable: ${key}`);
@@ -214,6 +243,9 @@ function varsFor(g: GlobalArgs): Record<string, string> {
     license: g.license,
     goVersion: g.goVersion,
     coverageTarget: g.coverageTarget,
+    defaultBranch: g.defaultBranch,
+    runsOn: g.runsOn,
+    goVersionCI: g.goVersionCI,
     justfilesRepo: g.justfilesRepo,
     year: String(new Date().getFullYear()),
     installLine: g.kind === "cli"
@@ -356,6 +388,7 @@ export const model = {
           goVersion: g.goVersion,
           filesWritten: [],
           filesSkipped: [],
+          filesOverwritten: [],
           status: "prereqs_checked",
           updatedAt: new Date().toISOString(),
         });
@@ -383,6 +416,7 @@ export const model = {
           goVersion: g.goVersion,
           filesWritten: [],
           filesSkipped: [],
+          filesOverwritten: [],
           status: "created",
           updatedAt: new Date().toISOString(),
         });
@@ -399,18 +433,25 @@ export const model = {
         const vars = varsFor(g);
         const written: string[] = [];
         const skipped: string[] = [];
+        const overwritten: string[] = [];
 
         for (const file of planFor(g)) {
           const dest = `${projectPath}/${file.dest}`;
 
-          // Never overwrite: a re-run must be safe on a project someone has
-          // since edited.
+          // A re-run must be safe on a project someone has since edited, so
+          // an existing file is left alone unless overwrite says otherwise.
+          let exists = true;
           try {
             await Deno.lstat(dest);
-            skipped.push(file.dest);
-            continue;
           } catch {
-            // Absent — write it.
+            exists = false;
+          }
+          if (exists) {
+            if (!g.overwrite) {
+              skipped.push(file.dest);
+              continue;
+            }
+            overwritten.push(file.dest);
           }
 
           const template = await Deno.readTextFile(
@@ -419,13 +460,17 @@ export const model = {
           const slash = dest.lastIndexOf("/");
           await Deno.mkdir(dest.substring(0, slash), { recursive: true });
           await Deno.writeTextFile(dest, render(template, vars));
-          written.push(file.dest);
+          if (!overwritten.includes(file.dest)) written.push(file.dest);
         }
 
-        context.logger.info("Wrote {written} files, skipped {skipped}", {
-          written: written.length,
-          skipped: skipped.length,
-        });
+        context.logger.info(
+          "Wrote {written}, overwrote {overwritten}, skipped {skipped}",
+          {
+            written: written.length,
+            overwritten: overwritten.length,
+            skipped: skipped.length,
+          },
+        );
 
         const handle = await context.writeResource("state", "current", {
           projectName: g.projectName,
@@ -435,6 +480,7 @@ export const model = {
           goVersion: g.goVersion,
           filesWritten: written,
           filesSkipped: skipped,
+          filesOverwritten: overwritten,
           status: "files_written",
           updatedAt: new Date().toISOString(),
         });
@@ -461,6 +507,7 @@ export const model = {
           goVersion: g.goVersion,
           filesWritten: [],
           filesSkipped: [],
+          filesOverwritten: [],
           status: "bootstrapped",
           updatedAt: new Date().toISOString(),
         });

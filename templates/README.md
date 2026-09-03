@@ -1,11 +1,11 @@
-# {{ projectName }}
+# @@projectName@@
 
-{{ description }}
+@@description@@
 
 ## Install
 
 ```bash
-{{ installLine }}
+@@installLine@@
 ```
 
 ## Usage
@@ -26,4 +26,4 @@ just ready      # everything CI runs
 
 ## License
 
-{{ license }}, see [LICENSE](LICENSE).
+@@license@@, see [LICENSE](LICENSE).

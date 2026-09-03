@@ -1,5 +1,5 @@
 {
-  "org": "{{ owner }}",
+  "org": "@@owner@@",
   "settings": {
     "has_issues": true,
     "has_wiki": false,
@@ -18,7 +18,7 @@
     "secret_scanning_push_protection": true
   },
   "branch_protection": {
-    "branch": "main",
+    "branch": "@@defaultBranch@@",
     "enforce_admins": true,
     "required_status_checks": { "strict": true },
     "required_pull_request_reviews": { "required_approving_review_count": 0 },
@@ -30,8 +30,8 @@
   },
   "repos": [
     {
-      "name": "{{ projectName }}",
-      "description": "{{ description }}",
+      "name": "@@projectName@@",
+      "description": "@@description@@",
       "topics": ["golang"]
     }
   ]

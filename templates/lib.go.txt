@@ -1,2 +1,2 @@
-// Package {{ packageName }} {{ description }}
-package {{ packageName }}
+// Package @@packageName@@ @@description@@
+package @@packageName@@

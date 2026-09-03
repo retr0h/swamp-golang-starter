@@ -1,0 +1,132 @@
+name: "@retr0h/retemplate-go"
+description: Re-render the templates over an existing Go project, refreshing it from the current templates
+version: 1
+inputs:
+  properties:
+    project_name:
+      type: string
+      description: Project name (lowercase, alphanumeric, hyphens only)
+    owner:
+      type: string
+      default: "retr0h"
+      description: Repository owner; the module path is built from it
+    module_host:
+      type: string
+      default: "github.com"
+      description: Module path host
+    description:
+      type: string
+      default: ""
+      description: One-line repository description
+    author:
+      type: string
+      default: ""
+      description: Copyright holder written to LICENSE; defaults to owner
+    license:
+      type: string
+      default: "MIT"
+      description: SPDX identifier named in README and LICENSE
+    parent_dir:
+      type: string
+      default: "~/git"
+      description: Parent directory the project folder is created in
+    go_version:
+      type: string
+      default: "1.25"
+      description: Go version written to go.mod and .mise.toml
+    coverage_target:
+      type: string
+      default: "100%"
+      description: Codecov project and patch target
+    default_branch:
+      type: string
+      default: "main"
+      description: Branch the CI workflows and branch protection target
+    runs_on:
+      type: string
+      default: "ubuntu-latest"
+      description: GitHub Actions runner label
+    go_version_ci:
+      type: string
+      default: "stable"
+      description: Go version CI installs; separate from go_version in go.mod
+    kind:
+      type: string
+      default: "lib"
+      description: "Project shape: lib or cli"
+    overwrite:
+      type: boolean
+      default: true
+      description: Re-render over files that already exist, discarding local edits
+    shared_justfiles:
+      type: boolean
+      default: false
+      description: Fetch build recipes from a shared justfiles repository
+    justfiles_repo:
+      type: string
+      default: "https://raw.githubusercontent.com/osapi-io/osapi-justfiles/refs/heads/main"
+      description: Base URL for shared recipes; only used when shared_justfiles is on
+    with_ci:
+      type: boolean
+      default: true
+      description: GitHub Actions workflows
+    with_releaser:
+      type: boolean
+      default: true
+      description: goreleaser config and release workflow
+    with_codecov:
+      type: boolean
+      default: true
+      description: Codecov config
+    with_dependabot:
+      type: boolean
+      default: true
+      description: Dependabot config
+    with_labeler:
+      type: boolean
+      default: true
+      description: Pull request labeler config
+    with_agent_docs:
+      type: boolean
+      default: true
+      description: AGENTS.md and CLAUDE.md
+    with_repos_json:
+      type: boolean
+      default: false
+      description: .github/repos.json for gh-reposync
+  required:
+    - project_name
+jobs:
+  - name: retemplate
+    description: Re-render templates over an existing project
+    steps:
+      - name: write-files
+        description: Render the templates into the project directory
+        task:
+          type: model_method
+          modelIdOrName: go-project
+          methodName: write_files
+          inputs:
+            project_name: ${{ inputs.project_name }}
+            kind: ${{ inputs.kind }}
+            owner: ${{ inputs.owner }}
+            module_host: ${{ inputs.module_host }}
+            description: ${{ inputs.description }}
+            author: ${{ inputs.author }}
+            license: ${{ inputs.license }}
+            parent_dir: ${{ inputs.parent_dir }}
+            go_version: ${{ inputs.go_version }}
+            coverage_target: ${{ inputs.coverage_target }}
+            default_branch: ${{ inputs.default_branch }}
+            runs_on: ${{ inputs.runs_on }}
+            go_version_ci: ${{ inputs.go_version_ci }}
+            overwrite: ${{ inputs.overwrite }}
+            shared_justfiles: ${{ inputs.shared_justfiles }}
+            justfiles_repo: ${{ inputs.justfiles_repo }}
+            with_ci: ${{ inputs.with_ci }}
+            with_releaser: ${{ inputs.with_releaser }}
+            with_codecov: ${{ inputs.with_codecov }}
+            with_dependabot: ${{ inputs.with_dependabot }}
+            with_labeler: ${{ inputs.with_labeler }}
+            with_agent_docs: ${{ inputs.with_agent_docs }}
+            with_repos_json: ${{ inputs.with_repos_json }}

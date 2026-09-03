@@ -38,6 +38,22 @@ inputs:
       type: string
       default: "100%"
       description: Codecov project and patch target
+    default_branch:
+      type: string
+      default: "main"
+      description: Branch the CI workflows and branch protection target
+    runs_on:
+      type: string
+      default: "ubuntu-latest"
+      description: GitHub Actions runner label
+    go_version_ci:
+      type: string
+      default: "stable"
+      description: Go version CI installs; separate from go_version in go.mod
+    overwrite:
+      type: boolean
+      default: false
+      description: Re-render over files that already exist, discarding local edits
     shared_justfiles:
       type: boolean
       default: false
@@ -97,6 +113,10 @@ jobs:
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
             coverage_target: ${{ inputs.coverage_target }}
+            default_branch: ${{ inputs.default_branch }}
+            runs_on: ${{ inputs.runs_on }}
+            go_version_ci: ${{ inputs.go_version_ci }}
+            overwrite: ${{ inputs.overwrite }}
             shared_justfiles: ${{ inputs.shared_justfiles }}
             justfiles_repo: ${{ inputs.justfiles_repo }}
             with_ci: ${{ inputs.with_ci }}
@@ -128,6 +148,10 @@ jobs:
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
             coverage_target: ${{ inputs.coverage_target }}
+            default_branch: ${{ inputs.default_branch }}
+            runs_on: ${{ inputs.runs_on }}
+            go_version_ci: ${{ inputs.go_version_ci }}
+            overwrite: ${{ inputs.overwrite }}
             shared_justfiles: ${{ inputs.shared_justfiles }}
             justfiles_repo: ${{ inputs.justfiles_repo }}
             with_ci: ${{ inputs.with_ci }}
@@ -159,6 +183,10 @@ jobs:
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
             coverage_target: ${{ inputs.coverage_target }}
+            default_branch: ${{ inputs.default_branch }}
+            runs_on: ${{ inputs.runs_on }}
+            go_version_ci: ${{ inputs.go_version_ci }}
+            overwrite: ${{ inputs.overwrite }}
             shared_justfiles: ${{ inputs.shared_justfiles }}
             justfiles_repo: ${{ inputs.justfiles_repo }}
             with_ci: ${{ inputs.with_ci }}
@@ -190,6 +218,10 @@ jobs:
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
             coverage_target: ${{ inputs.coverage_target }}
+            default_branch: ${{ inputs.default_branch }}
+            runs_on: ${{ inputs.runs_on }}
+            go_version_ci: ${{ inputs.go_version_ci }}
+            overwrite: ${{ inputs.overwrite }}
             shared_justfiles: ${{ inputs.shared_justfiles }}
             justfiles_repo: ${{ inputs.justfiles_repo }}
             with_ci: ${{ inputs.with_ci }}

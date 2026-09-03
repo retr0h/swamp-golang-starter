@@ -3,13 +3,13 @@ name: Just Lint
 
 on:
   push:
-    branches: ["main"]
+    branches: ["@@defaultBranch@@"]
   pull_request:
-    branches: ["main"]
+    branches: ["@@defaultBranch@@"]
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: @@runsOn@@
     steps:
       - uses: actions/checkout@v7
       - name: Install just

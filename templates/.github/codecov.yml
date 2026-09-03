@@ -2,7 +2,7 @@
 # Coverage target for this repository.
 #
 # The threshold absorbs rounding, not regression. With precision 2 and round
-# down, a change in statement count can render a genuine 100% as 99.99% and
+# down, a change in statement count can render a genuine @@coverageTarget@@ as just under it and
 # fail the status on an artifact.
 #
 # There is deliberately no `ignore:` list. Exclusions are defined once in
@@ -15,11 +15,11 @@ coverage:
   status:
     project:
       default:
-        target: {{ coverageTarget }}
+        target: @@coverageTarget@@
         threshold: 0.05%
     patch:
       default:
-        target: {{ coverageTarget }}
+        target: @@coverageTarget@@
         threshold: 0.05%
 
 comment:

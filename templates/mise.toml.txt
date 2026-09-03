@@ -1,4 +1,4 @@
 [tools]
-go = "{{ goVersion }}"
+go = "@@goVersion@@"
 just = "latest"
 uv = "latest"

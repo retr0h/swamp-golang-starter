@@ -16,9 +16,9 @@ default:
 # Fetch shared justfiles
 fetch:
     mkdir -p .just/remote
-    curl -sSfL {{ justfilesRepo }}/go/go.just -o .just/remote/go.just
-    curl -sSfL {{ justfilesRepo }}/md/md.just -o .just/remote/md.just
-    curl -sSfL {{ justfilesRepo }}/just/just.just -o .just/remote/just.just
+    curl -sSfL @@justfilesRepo@@/go/go.just -o .just/remote/go.just
+    curl -sSfL @@justfilesRepo@@/md/md.just -o .just/remote/md.just
+    curl -sSfL @@justfilesRepo@@/just/just.just -o .just/remote/just.just
 
 # --- Top-level orchestration ---
 

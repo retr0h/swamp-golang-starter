@@ -16,10 +16,24 @@ deps:
 lint:
     golangci-lint run
 
+# Coverage target. Declared again in .github/codecov.yml, which gates the
+# same number on the pull request. Neither system can read the other's
+# config, so it lives in both places — change both together.
+coverage_target := "@@coverageTarget@@"
+
 # Run the tests with coverage
 test:
     mkdir -p .coverage
     go test -race -coverprofile=.coverage/cover.out ./...
+
+# Fail when total coverage is below the target
+cov-check: test
+    #!/usr/bin/env bash
+    set -euo pipefail
+    total=$(go tool cover -func=.coverage/cover.out | awk '/^total:/ {print $3}' | tr -d '%')
+    target=$(echo "{{ coverage_target }}" | tr -d '%')
+    echo "coverage: ${total}% (target ${target}%)"
+    awk -v t="$total" -v g="$target" 'BEGIN { exit (t+0 >= g+0) ? 0 : 1 }'
 
 # Format the source
 fmt:
@@ -28,4 +42,4 @@ fmt:
 # --- Orchestration ---
 
 # Everything CI runs
-ready: deps fmt lint test
+ready: deps fmt lint cov-check

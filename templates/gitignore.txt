@@ -4,4 +4,4 @@ dist/
 .just/
 
 # Compiled binary at the repository root
-/{{ projectName }}
+/@@projectName@@

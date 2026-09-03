@@ -37,6 +37,18 @@ inputs:
     coverage_target:
       type: string
       default: "100%"
+    default_branch:
+      type: string
+      default: "main"
+    runs_on:
+      type: string
+      default: "ubuntu-latest"
+    go_version_ci:
+      type: string
+      default: "stable"
+    overwrite:
+      type: boolean
+      default: false
     shared_justfiles:
       type: boolean
       default: false
@@ -77,6 +89,10 @@ globalArguments:
   parentDir: ${{ inputs.parent_dir }}
   goVersion: ${{ inputs.go_version }}
   coverageTarget: ${{ inputs.coverage_target }}
+  defaultBranch: ${{ inputs.default_branch }}
+  runsOn: ${{ inputs.runs_on }}
+  goVersionCI: ${{ inputs.go_version_ci }}
+  overwrite: ${{ inputs.overwrite }}
   sharedJustfiles: ${{ inputs.shared_justfiles }}
   justfilesRepo: ${{ inputs.justfiles_repo }}
   withCI: ${{ inputs.with_ci }}
