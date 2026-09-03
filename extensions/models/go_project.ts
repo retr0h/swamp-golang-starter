@@ -55,8 +55,16 @@ const GlobalArgsSchema = z.object({
     .describe("Parent directory the project folder is created in"),
   goVersion: z
     .string()
-    .default("1.25")
-    .describe("Go version written to go.mod and .mise.toml"),
+    .default("1.26")
+    .describe(
+      "Language version written to go.mod. This is a floor — the oldest Go that can compile the module — not the toolchain anyone builds with.",
+    ),
+  goVersionMise: z
+    .string()
+    .default("latest")
+    .describe(
+      "Go version mise provisions. Defaults to latest so it moves with CI rather than pinning developers to the module's floor.",
+    ),
   coverageTarget: z
     .string()
     .default("100%")
@@ -318,6 +326,7 @@ function varsFor(g: GlobalArgs): Record<string, string> {
     author: g.author || g.owner,
     license: g.license,
     goVersion: g.goVersion,
+    goVersionMise: g.goVersionMise,
     coverageTarget: g.coverageTarget,
     defaultBranch: g.defaultBranch,
     runsOn: g.runsOn,
@@ -526,6 +535,7 @@ export const model = {
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
+          goVersionMise: g.goVersionMise,
           filesWritten: [],
           filesSkipped: [],
           filesOverwritten: [],
@@ -554,6 +564,7 @@ export const model = {
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
+          goVersionMise: g.goVersionMise,
           filesWritten: [],
           filesSkipped: [],
           filesOverwritten: [],
@@ -628,6 +639,7 @@ export const model = {
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
+          goVersionMise: g.goVersionMise,
           filesWritten: written,
           filesSkipped: skipped,
           filesOverwritten: overwritten,
@@ -655,6 +667,7 @@ export const model = {
           modulePath: modulePathFor(g),
           kind: g.kind,
           goVersion: g.goVersion,
+          goVersionMise: g.goVersionMise,
           filesWritten: [],
           filesSkipped: [],
           filesOverwritten: [],

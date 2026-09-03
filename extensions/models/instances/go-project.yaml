@@ -45,7 +45,7 @@ inputs:
       default: "~/git"
     go_version:
       type: string
-      default: "1.25"
+      default: "1.26"
     coverage_target:
       type: string
       default: "100%"
@@ -55,6 +55,10 @@ inputs:
     runs_on:
       type: string
       default: "ubuntu-latest"
+    go_version_mise:
+      type: string
+      default: "latest"
+      description: Go version mise provisions
     go_version_ci:
       type: string
       default: "stable"
@@ -107,6 +111,7 @@ globalArguments:
   coverageTarget: ${{ inputs.coverage_target }}
   defaultBranch: ${{ inputs.default_branch }}
   runsOn: ${{ inputs.runs_on }}
+  goVersionMise: ${{ inputs.go_version_mise }}
   goVersionCI: ${{ inputs.go_version_ci }}
   overwrite: ${{ inputs.overwrite }}
   sharedJustfiles: ${{ inputs.shared_justfiles }}

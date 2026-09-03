@@ -48,7 +48,7 @@ inputs:
       description: Parent directory the project folder is created in
     go_version:
       type: string
-      default: "1.25"
+      default: "1.26"
       description: Go version written to go.mod and .mise.toml
     coverage_target:
       type: string
@@ -62,6 +62,10 @@ inputs:
       type: string
       default: "ubuntu-latest"
       description: GitHub Actions runner label
+    go_version_mise:
+      type: string
+      default: "latest"
+      description: Go version mise provisions
     go_version_ci:
       type: string
       default: "stable"
@@ -135,6 +139,7 @@ jobs:
             coverage_target: ${{ inputs.coverage_target }}
             default_branch: ${{ inputs.default_branch }}
             runs_on: ${{ inputs.runs_on }}
+            go_version_mise: ${{ inputs.go_version_mise }}
             go_version_ci: ${{ inputs.go_version_ci }}
             overwrite: ${{ inputs.overwrite }}
             shared_justfiles: ${{ inputs.shared_justfiles }}
@@ -174,6 +179,7 @@ jobs:
             coverage_target: ${{ inputs.coverage_target }}
             default_branch: ${{ inputs.default_branch }}
             runs_on: ${{ inputs.runs_on }}
+            go_version_mise: ${{ inputs.go_version_mise }}
             go_version_ci: ${{ inputs.go_version_ci }}
             overwrite: ${{ inputs.overwrite }}
             shared_justfiles: ${{ inputs.shared_justfiles }}
@@ -213,6 +219,7 @@ jobs:
             coverage_target: ${{ inputs.coverage_target }}
             default_branch: ${{ inputs.default_branch }}
             runs_on: ${{ inputs.runs_on }}
+            go_version_mise: ${{ inputs.go_version_mise }}
             go_version_ci: ${{ inputs.go_version_ci }}
             overwrite: ${{ inputs.overwrite }}
             shared_justfiles: ${{ inputs.shared_justfiles }}
@@ -252,6 +259,7 @@ jobs:
             coverage_target: ${{ inputs.coverage_target }}
             default_branch: ${{ inputs.default_branch }}
             runs_on: ${{ inputs.runs_on }}
+            go_version_mise: ${{ inputs.go_version_mise }}
             go_version_ci: ${{ inputs.go_version_ci }}
             overwrite: ${{ inputs.overwrite }}
             shared_justfiles: ${{ inputs.shared_justfiles }}
