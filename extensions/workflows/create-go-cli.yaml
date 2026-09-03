@@ -1,0 +1,43 @@
+name: "@retr0h/create-go-cli"
+description: Scaffold a Go command — module, justfile, CI workflows, linters and release config
+version: 1
+inputs:
+  properties:
+    project_name:
+      type: string
+      description: Project name (lowercase, alphanumeric, hyphens only)
+    owner:
+      type: string
+      default: "retr0h"
+      description: GitHub owner; the module path is built from it
+    description:
+      type: string
+      default: ""
+      description: One-line repository description
+    parent_dir:
+      type: string
+      default: "~/git"
+      description: Parent directory the project folder is created in
+    go_version:
+      type: string
+      default: "1.25"
+      description: Go version written to go.mod
+  required:
+    - project_name
+jobs:
+  - name: scaffold
+    description: Create and configure a Go cli project
+    steps:
+      - name: check-prereqs
+        description: Verify go, git and just are installed
+        task:
+          type: model_method
+          modelIdOrName: go-project
+          methodName: check_prereqs
+          inputs:
+            project_name: ${{ inputs.project_name }}
+            kind: "cli"
+            owner: ${{ inputs.owner }}
+            description: ${{ inputs.description }}
+            parent_dir: ${{ inputs.parent_dir }}
+            go_version: ${{ inputs.go_version }}
