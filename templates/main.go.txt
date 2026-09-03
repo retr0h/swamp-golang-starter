@@ -1,8 +1,8 @@
 // Command @@projectName@@ @@description@@
 package main
 
-import "@@modulePath@@/internal/cli"
+import "@@modulePath@@/cmd"
 
 func main() {
-	cli.Run()
+	cmd.Execute()
 }

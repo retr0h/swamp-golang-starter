@@ -469,13 +469,8 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
   } else {
     files.push({ template: "main.go.txt", dest: "main.go", managed: false });
     files.push({
-      template: "cli.go.txt",
-      dest: "internal/cli/cli.go",
-      managed: false,
-    });
-    files.push({
-      template: "cli_test.go.txt",
-      dest: "internal/cli/cli_test.go",
+      template: "cmd_root.go.txt",
+      dest: "cmd/root.go",
       managed: false,
     });
     if (g.withReleaser) {
@@ -553,7 +548,7 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
 /** Model definition for scaffolding a Go project. */
 export const model = {
   type: "@retr0h/go-project",
-  version: "2026.09.03.4",
+  version: "2026.09.03.5",
   globalArguments: GlobalArgsSchema,
   resources: {
     "state": {

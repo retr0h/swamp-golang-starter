@@ -633,13 +633,36 @@ Deno.test("a library scaffold ships a test for its stub", () => {
   assert(dests.includes("pkg/widget/widget_test.go"));
 });
 
-Deno.test("a command keeps its logic where coverage can reach it", () => {
-  // main.go is excluded by .coverignore, so a command whose behaviour lives
-  // only in main has nothing left to measure and the gate fails.
+Deno.test("a command puts its definitions in cmd/, untested", () => {
+  // Every command in this organization keeps main.go and /cmd/ out of
+  // coverage and ships no tests for them. A scaffold that seeds tests there
+  // teaches the opposite of the convention it is meant to carry.
   const dests = planFor(args({ kind: "cli" })).map((e) => e.dest);
   assert(dests.includes("main.go"));
-  assert(dests.includes("internal/cli/cli.go"));
-  assert(dests.includes("internal/cli/cli_test.go"));
+  assert(dests.includes("cmd/root.go"));
+  assert(
+    !dests.some((d) => d.startsWith("cmd/") && d.endsWith("_test.go")),
+    "cmd/ must ship no tests",
+  );
+  assert(
+    !dests.some((d) => d.startsWith("internal/cli/")),
+    "the command layer is cmd/, not internal/cli/",
+  );
+});
+
+Deno.test("everything a command ships is excluded from coverage", () => {
+  // Which is why cov-check must pass on an empty profile rather than
+  // reporting 0% against the target.
+  const ignore = varsFor(args({ kind: "cli" })).coverPaths;
+  assert(ignore.includes("main.go"), "main.go must be excluded");
+  assert(ignore.includes("/cmd/"), "/cmd/ must be excluded");
+  const justfile = Deno.readTextFileSync(
+    new URL("../../templates/justfile.txt", import.meta.url),
+  );
+  assert(
+    justfile.includes("no measurable statements"),
+    "cov-check must tolerate a fully excluded project",
+  );
 });
 
 Deno.test("golangci config is v2 format, not v1 keys under a v2 version", () => {

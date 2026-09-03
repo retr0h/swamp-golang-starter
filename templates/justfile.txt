@@ -66,6 +66,13 @@ go-test:
 cov-check:
     #!/usr/bin/env bash
     set -euo pipefail
+    # Everything in a freshly scaffolded command is excluded by .coverignore,
+    # so the filtered profile holds no statements. Nothing uncovered is not a
+    # failure — report it and pass.
+    if [ "$(wc -l < .coverage/cover.out)" -le 1 ]; then
+        echo "coverage: no measurable statements — every file is in .coverignore"
+        exit 0
+    fi
     total=$(go tool cover -func=.coverage/cover.out | awk '/^total:/ {print $3}' | tr -d '%')
     target=$(echo "{{ coverage_target }}" | tr -d '%')
     echo "coverage: ${total}% (target ${target}%)"
