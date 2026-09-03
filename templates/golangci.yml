@@ -1,7 +1,7 @@
-# Refer to golangci-lint's example config file for more options and information:
-# https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
+# golangci-lint v2 configuration.
+# https://golangci-lint.run/docs/configuration/file/
 
-version: 2
+version: "2"
 
 run:
   timeout: 5m
@@ -17,16 +17,15 @@ linters:
     - revive
     - staticcheck
     - unused
+  settings:
+    revive:
+      enable-all-rules: true
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
 
 formatters:
   enable:
+    - gofmt
     - goimports
-
-linters-settings:
-  revive:
-    enable-all-rules: true
-
-issues:
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0

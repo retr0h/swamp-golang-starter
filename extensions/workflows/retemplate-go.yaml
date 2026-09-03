@@ -73,8 +73,7 @@ inputs:
       description: Go version CI installs; separate from go_version in go.mod
     kind:
       type: string
-      default: "lib"
-      description: "Project shape: lib or cli"
+      description: "Project shape: lib or cli. Required — there is no safe default when re-rendering an existing project, because guessing wrong rewrites it as the other shape."
     overwrite:
       type: boolean
       default: true
@@ -117,6 +116,7 @@ inputs:
       description: .github/repos.json for gh-reposync
   required:
     - project_name
+    - kind
 jobs:
   - name: retemplate
     description: Re-render templates over an existing project

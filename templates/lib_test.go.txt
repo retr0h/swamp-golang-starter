@@ -1,0 +1,15 @@
+package @@packageName@@_test
+
+import (
+	"testing"
+
+	"@@modulePath@@/pkg/@@packageName@@"
+)
+
+func TestName(t *testing.T) {
+	t.Parallel()
+
+	if got := @@packageName@@.Name(); got != "@@projectName@@" {
+		t.Errorf("Name() = %q, want %q", got, "@@projectName@@")
+	}
+}

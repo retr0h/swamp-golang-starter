@@ -26,11 +26,19 @@ deps:
 # Run the tests with coverage, then gate on the target
 test: go-test cov-check
 
-# Check markdown formatting
+# Format the markdown
+md-fmt:
+    uvx --from mdformat mdformat --number --wrap 80 .
+
+# Check markdown formatting — what CI runs
 md-fmt-check:
     uvx --from mdformat mdformat --check --number --wrap 80 .
 
-# Check justfile formatting
+# Format the justfile
+just-fmt:
+    just --unstable --fmt
+
+# Check justfile formatting — what CI runs
 just-fmt-check:
     just --unstable --fmt --check
 
@@ -45,9 +53,14 @@ generate:
     go generate ./...
 
 # Run the tests with coverage
+#
+# The profile is filtered through .coverignore before the gate reads it, the
+# way the shared justfiles do, so excluded files never count against the
+# target and never reach a coverage service.
 go-test:
     mkdir -p .coverage
     go test -race -coverprofile=.coverage/cover.out ./...
+    grep -v -f .coverignore .coverage/cover.out > .coverage/cover.tmp && mv .coverage/cover.tmp .coverage/cover.out
 
 # Fail when total coverage is below the target
 cov-check:
@@ -81,4 +94,4 @@ fmt:
 # --- Orchestration ---
 
 # Everything CI runs
-ready: deps tools generate fmt lint test md-fmt-check just-fmt-check
+ready: deps tools generate fmt md-fmt just-fmt lint test

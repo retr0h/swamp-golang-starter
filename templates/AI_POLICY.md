@@ -27,9 +27,9 @@ This project has strict rules for AI usage:
   developers learn and grow, but if you're interested in that then don't use AI,
   and we'll help you. I'm sorry that bad AI drivers have ruined this for you.
 
-These rules apply only to outside contributions. Maintainers are
-exempt from these rules and may use AI tools at their discretion; they've proven
-themselves trustworthy to apply good judgment.
+These rules apply only to outside contributions. Maintainers are exempt from
+these rules and may use AI tools at their discretion; they've proven themselves
+trustworthy to apply good judgment.
 
 ## There are Humans Here
 
@@ -48,9 +48,9 @@ better, or both, we have to have strict rules to protect maintainers.
 
 ## AI is Welcome Here
 
-@@projectName@@ is written with plenty of AI assistance, and many maintainers embrace
-AI tools as a productive tool in their workflow. As a project, we welcome AI as
-a tool!
+@@projectName@@ is written with plenty of AI assistance, and many maintainers
+embrace AI tools as a productive tool in their workflow. As a project, we
+welcome AI as a tool!
 
 **Our reason for the strict AI policy is not due to an anti-AI stance**, but
 instead due to the number of highly unqualified people using AI. It's the

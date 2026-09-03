@@ -554,3 +554,116 @@ Deno.test("go.mod pins the tools the justfile runs", async () => {
     }
   });
 });
+
+Deno.test("re-rendering a command as a library is refused", async () => {
+  // Without this, retemplate with the wrong kind strips /cmd/ and main.go
+  // from .coverignore and rewrites CONTRIBUTING.md to call pkg/ the product,
+  // while .goreleaser.yaml and release.yml survive — a project that is half
+  // each shape.
+  await withTempDir(async (dir) => {
+    await Deno.mkdir(`${dir}/widget`, { recursive: true });
+    await Deno.writeTextFile(`${dir}/widget/main.go`, "package main\n");
+
+    const { context } = testContext({
+      parentDir: dir,
+      kind: "lib",
+      overwrite: true,
+      email: "maintainer@example.com",
+    });
+    const result = await model.checks["declared-kind-matches-the-project"]
+      .execute(context);
+    assertEquals(result.pass, false);
+    assert(result.errors![0].includes('Pass kind="cli"'));
+  });
+});
+
+Deno.test("re-rendering a library as a command is refused", async () => {
+  await withTempDir(async (dir) => {
+    await Deno.mkdir(`${dir}/widget/pkg/widget`, { recursive: true });
+
+    const { context } = testContext({
+      parentDir: dir,
+      kind: "cli",
+      overwrite: true,
+      email: "maintainer@example.com",
+    });
+    const result = await model.checks["declared-kind-matches-the-project"]
+      .execute(context);
+    assertEquals(result.pass, false);
+    assert(result.errors![0].includes('Pass kind="lib"'));
+  });
+});
+
+Deno.test("the kind check does not fire on a fresh scaffold", async () => {
+  // Nothing on disk to disagree with, and overwrite is off.
+  await withTempDir(async (dir) => {
+    const { context } = testContext({ parentDir: dir, kind: "lib" });
+    assertEquals(
+      (await model.checks["declared-kind-matches-the-project"].execute(context))
+        .pass,
+      true,
+    );
+  });
+});
+
+Deno.test("a correctly declared re-render passes", async () => {
+  await withTempDir(async (dir) => {
+    await Deno.mkdir(`${dir}/widget`, { recursive: true });
+    await Deno.writeTextFile(`${dir}/widget/main.go`, "package main\n");
+
+    const { context } = testContext({
+      parentDir: dir,
+      kind: "cli",
+      overwrite: true,
+      email: "maintainer@example.com",
+    });
+    assertEquals(
+      (await model.checks["declared-kind-matches-the-project"].execute(context))
+        .pass,
+      true,
+    );
+  });
+});
+
+Deno.test("a library scaffold ships a test for its stub", () => {
+  // Without one, `just ready` fails the coverage gate on a pristine project:
+  // 0% against a 100% target.
+  const dests = planFor(args({ kind: "lib" })).map((e) => e.dest);
+  assert(dests.includes("pkg/widget/widget.go"));
+  assert(dests.includes("pkg/widget/widget_test.go"));
+});
+
+Deno.test("a command keeps its logic where coverage can reach it", () => {
+  // main.go is excluded by .coverignore, so a command whose behaviour lives
+  // only in main has nothing left to measure and the gate fails.
+  const dests = planFor(args({ kind: "cli" })).map((e) => e.dest);
+  assert(dests.includes("main.go"));
+  assert(dests.includes("internal/cli/cli.go"));
+  assert(dests.includes("internal/cli/cli_test.go"));
+});
+
+Deno.test("golangci config is v2 format, not v1 keys under a v2 version", () => {
+  // `version: 2` with linters-settings/exclude-use-default is rejected by
+  // `golangci-lint config verify`, and `run` silently ignores them — so
+  // revive's enable-all-rules never took effect.
+  const cfg = Deno.readTextFileSync(
+    new URL("../../templates/golangci.yml", import.meta.url),
+  );
+  assert(cfg.includes('version: "2"'), "version must be the string \"2\"");
+  assert(!cfg.includes("linters-settings:"), "linters-settings is a v1 key");
+  assert(!cfg.includes("exclude-use-default:"), "exclude-use-default is a v1 key");
+  assert(cfg.includes("  settings:"), "v2 nests settings under linters");
+});
+
+Deno.test("ready formats markdown rather than checking it", () => {
+  // Substituting a longer description pushes a wrapped line past 80 columns,
+  // so a fresh scaffold cannot pass md-fmt-check until it has been formatted
+  // once. CI still runs the check.
+  const justfile = Deno.readTextFileSync(
+    new URL("../../templates/justfile.txt", import.meta.url),
+  );
+  const ready = justfile.split("\n").find((l) => l.startsWith("ready:"))!;
+  assert(ready.includes("md-fmt"), "ready must format markdown");
+  assert(!ready.includes("md-fmt-check"), "ready must not run the check");
+  assert(justfile.includes("md-fmt-check:"), "the check must still exist for CI");
+});

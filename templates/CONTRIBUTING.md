@@ -17,27 +17,27 @@ exactly as it applies to people.
   brew install mise
   ```
 
-  Then [activate it in your shell](https://mise.jdx.dev/getting-started.html)
-  so tools land on `PATH` when you `cd` into the repository.
+  Then [activate it in your shell](https://mise.jdx.dev/getting-started.html) so
+  tools land on `PATH` when you `cd` into the repository.
 
 Everything below is provisioned by `mise install`:
 
-- **[just](https://just.systems).** Task runner. `just test` runs every check
-  CI runs.
-- **[uv](https://docs.astral.sh/uv/).** Python package runner, used for
-  markdown formatting.
+- **[just](https://just.systems).** Task runner. `just test` runs every check CI
+  runs.
+- **[uv](https://docs.astral.sh/uv/).** Python package runner, used for markdown
+  formatting.
 
 ### Claude Code
 
-If you use [Claude Code](https://claude.ai/code), install the commit plugin
-from the default marketplace:
+If you use [Claude Code](https://claude.ai/code), install the commit plugin from
+the default marketplace:
 
 ```
 /plugin install commit-commands@claude-plugins-official
 ```
 
-It provides `/commit` and `/commit-push-pr`, which follow the conventions
-below automatically.
+It provides `/commit` and `/commit-push-pr`, which follow the conventions below
+automatically.
 
 ## Setup
 
@@ -57,8 +57,8 @@ just test
 ## Code style
 
 Formatting is not a matter of taste here — `just go-fmt` and `just md-fmt`
-decide it, and CI checks the result. Run `just ready` before committing and
-the question does not arise.
+decide it, and CI checks the result. Run `just ready` before committing and the
+question does not arise.
 
 ### Documentation
 
@@ -69,13 +69,13 @@ own name. A package has a package comment on exactly one file.
 
 ### Function signatures
 
-Take interfaces, return structs. A function that accepts a concrete type it
-does not need forces every caller to construct one.
+Take interfaces, return structs. A function that accepts a concrete type it does
+not need forces every caller to construct one.
 
 ### File naming
 
-One responsibility per file, named for it. `snake_case.go`, matching the
-package it lives in.
+One responsibility per file, named for it. `snake_case.go`, matching the package
+it lives in.
 
 ### Go patterns
 
@@ -86,8 +86,8 @@ package it lives in.
 ### Test doubles
 
 Prefer a real implementation over a fake, a fake over a mock. A mock that
-asserts call order tests the implementation rather than the behaviour, and
-fails when the implementation changes for good reasons.
+asserts call order tests the implementation rather than the behaviour, and fails
+when the implementation changes for good reasons.
 
 ### File headers
 
@@ -96,8 +96,7 @@ Every source file carries the licence header. `just ready` adds it.
 ### Error wrapping at the module boundary
 
 Wrap with `fmt.Errorf("...: %w", err)` when adding context a caller cannot
-already infer. Do not wrap to restate the operation the call site already
-names.
+already infer. Do not wrap to restate the operation the call site already names.
 
 ## Testing
 
@@ -124,8 +123,8 @@ Neither system can read the other's config, so change both together.
   exercising the exported surface. This is the default.
 - **Internal tests**: `*_test.go` in the same package, for what the exported
   surface cannot reach.
-- **Suite naming**: `*_public_test.go` → `{Name}PublicTestSuite`,
-  `*_test.go` → `{Name}TestSuite`.
+- **Suite naming**: `*_public_test.go` → `{Name}PublicTestSuite`, `*_test.go` →
+  `{Name}TestSuite`.
 
 ## Quick reference
 

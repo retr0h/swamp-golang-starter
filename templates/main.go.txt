@@ -1,8 +1,8 @@
 // Command @@projectName@@ @@description@@
 package main
 
-import "fmt"
+import "@@modulePath@@/internal/cli"
 
 func main() {
-	fmt.Println("@@projectName@@")
+	cli.Run()
 }
