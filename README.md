@@ -113,24 +113,10 @@ and `mise`; `uv` when markdown linting is enabled.
 swamp extension pull @retr0h/golang-starter
 ```
 
-## 🧰 Development
+## 🧑‍💻 Contributing
 
-```bash
-mise install                                   # deno
-swamp extension fmt manifest.yaml              # format and lint
-~/.swamp/deno/deno test --allow-read --allow-env extensions/models/
-SWAMP_EXTENSION_REVIEW_DIR="$PWD/.swamp-review" \
-  swamp extension push manifest.yaml --dry-run
-```
-
-The adversarial review report is bound to a content hash of the source, so any
-change requires a fresh one. Reports live in `.swamp-review/` rather than the
-system temp directory a local run defaults to — the override needs an absolute
-path, and a relative one is ignored silently.
-
-The current report records two open issues on purpose: `execute()` is not unit
-tested, because `createModelTestContext` supplies no `extensionFile`; and the
-mutating methods carry no labelled pre-flight checks.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, layout, how to add a
+template or a variable, testing, the adversarial review and publishing.
 
 ## 📄 License
 
