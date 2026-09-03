@@ -1,0 +1,18 @@
+// Package cmd holds the command definitions.
+//
+// This package and main.go are excluded from coverage by .coverignore, as in
+// every command in this organization. Behaviour worth testing lives in
+// internal/.
+package cmd
+
+import (
+	"fmt"
+	"os"
+
+	"@@modulePath@@/internal/@@packageName@@"
+)
+
+// Execute runs the command.
+func Execute() {
+	_, _ = fmt.Fprintln(os.Stdout, @@packageName@@.Name())
+}

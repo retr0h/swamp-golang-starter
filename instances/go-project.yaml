@@ -1,5 +1,5 @@
 type: '@retr0h/go-project'
-typeVersion: 2026.09.03.4
+typeVersion: 2026.09.03.5
 id: f62e2bab-8202-49e9-89ee-489d97ad55b8
 name: go-project
 version: 1
@@ -66,9 +66,6 @@ inputs:
     overwrite:
       type: boolean
       default: false
-    shared_justfiles:
-      type: boolean
-      default: false
     justfiles_repo:
       type: string
       default: "https://raw.githubusercontent.com/osapi-io/osapi-justfiles/refs/heads/main"
@@ -115,7 +112,6 @@ globalArguments:
   goVersionMise: ${{ inputs.go_version_mise }}
   goVersionCI: ${{ inputs.go_version_ci }}
   overwrite: ${{ inputs.overwrite }}
-  sharedJustfiles: ${{ inputs.shared_justfiles }}
   justfilesRepo: ${{ inputs.justfiles_repo }}
   withCI: ${{ inputs.with_ci }}
   withReleaser: ${{ inputs.with_releaser }}

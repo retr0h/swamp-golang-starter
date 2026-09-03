@@ -1,7 +1,7 @@
 {
   "extension": "@retr0h/golang-starter",
-  "version": "2026.09.03.4",
-  "reviewedAt": "2026-09-03T20:30:00Z",
+  "version": "2026.09.03.5",
+  "reviewedAt": "2026-09-03T21:20:00Z",
   "dimensions": [
     {
       "id": "credentials-secrets",
