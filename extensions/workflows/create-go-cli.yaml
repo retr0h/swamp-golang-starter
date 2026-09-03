@@ -26,6 +26,22 @@ inputs:
       type: string
       default: "MIT"
       description: SPDX identifier named in README and LICENSE
+    email:
+      type: string
+      default: ""
+      description: Contact address for the Code of Conduct enforcement section
+    pkg_path:
+      type: string
+      default: ""
+      description: Import path under the module for the go reference badge
+    with_badges:
+      type: boolean
+      default: true
+      description: Render the shields.io badge block in the README
+    with_code_of_conduct:
+      type: boolean
+      default: true
+      description: CODE_OF_CONDUCT.md; requires email
     parent_dir:
       type: string
       default: "~/git"
@@ -110,6 +126,10 @@ jobs:
             description: ${{ inputs.description }}
             author: ${{ inputs.author }}
             license: ${{ inputs.license }}
+            email: ${{ inputs.email }}
+            pkg_path: ${{ inputs.pkg_path }}
+            with_badges: ${{ inputs.with_badges }}
+            with_code_of_conduct: ${{ inputs.with_code_of_conduct }}
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
             coverage_target: ${{ inputs.coverage_target }}
@@ -145,6 +165,10 @@ jobs:
             description: ${{ inputs.description }}
             author: ${{ inputs.author }}
             license: ${{ inputs.license }}
+            email: ${{ inputs.email }}
+            pkg_path: ${{ inputs.pkg_path }}
+            with_badges: ${{ inputs.with_badges }}
+            with_code_of_conduct: ${{ inputs.with_code_of_conduct }}
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
             coverage_target: ${{ inputs.coverage_target }}
@@ -180,6 +204,10 @@ jobs:
             description: ${{ inputs.description }}
             author: ${{ inputs.author }}
             license: ${{ inputs.license }}
+            email: ${{ inputs.email }}
+            pkg_path: ${{ inputs.pkg_path }}
+            with_badges: ${{ inputs.with_badges }}
+            with_code_of_conduct: ${{ inputs.with_code_of_conduct }}
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
             coverage_target: ${{ inputs.coverage_target }}
@@ -215,6 +243,10 @@ jobs:
             description: ${{ inputs.description }}
             author: ${{ inputs.author }}
             license: ${{ inputs.license }}
+            email: ${{ inputs.email }}
+            pkg_path: ${{ inputs.pkg_path }}
+            with_badges: ${{ inputs.with_badges }}
+            with_code_of_conduct: ${{ inputs.with_code_of_conduct }}
             parent_dir: ${{ inputs.parent_dir }}
             go_version: ${{ inputs.go_version }}
             coverage_target: ${{ inputs.coverage_target }}

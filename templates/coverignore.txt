@@ -1,5 +1,1 @@
-/cmd/
-/examples/
-/gen/
-main.go
-/mocks/
+@@coverPaths@@

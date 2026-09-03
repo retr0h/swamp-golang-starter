@@ -28,6 +28,18 @@ inputs:
     license:
       type: string
       default: "MIT"
+    email:
+      type: string
+      default: ""
+    pkg_path:
+      type: string
+      default: ""
+    with_badges:
+      type: boolean
+      default: true
+    with_code_of_conduct:
+      type: boolean
+      default: true
     parent_dir:
       type: string
       default: "~/git"
@@ -86,6 +98,10 @@ globalArguments:
   description: ${{ inputs.description }}
   author: ${{ inputs.author }}
   license: ${{ inputs.license }}
+  email: ${{ inputs.email }}
+  pkgPath: ${{ inputs.pkg_path }}
+  withBadges: ${{ inputs.with_badges }}
+  withCodeOfConduct: ${{ inputs.with_code_of_conduct }}
   parentDir: ${{ inputs.parent_dir }}
   goVersion: ${{ inputs.go_version }}
   coverageTarget: ${{ inputs.coverage_target }}

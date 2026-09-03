@@ -71,6 +71,16 @@ const GlobalArgsSchema = z.object({
     .string()
     .default("ubuntu-latest")
     .describe("GitHub Actions runner label"),
+  email: z
+    .string()
+    .default("")
+    .describe(
+      "Contact address for the Code of Conduct's enforcement section. Required when withCodeOfConduct is on: a document that names someone else's address is worse than none.",
+    ),
+  withCodeOfConduct: z
+    .boolean()
+    .default(true)
+    .describe("CODE_OF_CONDUCT.md. Needs email."),
   pkgPath: z
     .string()
     .default("")
@@ -315,6 +325,13 @@ function varsFor(g: GlobalArgs): Record<string, string> {
     justfilesRepo: g.justfilesRepo,
     year: String(new Date().getFullYear()),
     badges: badgesFor(g, modulePath),
+    email: g.email,
+    coverPaths: g.kind === "lib"
+      ? ["/examples/", "/gen/", "/mocks/"].join("\n")
+      : ["/cmd/", "/examples/", "/gen/", "main.go", "/mocks/"].join("\n"),
+    labelerSource: g.kind === "lib"
+      ? 'source:\n  - changed-files:\n      - any-glob-to-any-file:\n          - "pkg/**"'
+      : 'source:\n  - changed-files:\n      - any-glob-to-any-file:\n          - "cmd/**"\n          - "internal/**"\n          - "main.go"',
     projectStructure: g.kind === "lib"
       ? [
         `pkg/${
@@ -385,6 +402,14 @@ function planFor(g: GlobalArgs): PlanEntry[] {
       managed: true,
     },
   ];
+
+  if (g.withCodeOfConduct) {
+    files.push({
+      template: "CODE_OF_CONDUCT.md",
+      dest: "CODE_OF_CONDUCT.md",
+      managed: true,
+    });
+  }
 
   if (g.withAgentDocs) {
     files.push({ template: "AGENTS.md", dest: "AGENTS.md", managed: true });
@@ -545,6 +570,14 @@ export const model = {
       execute: async (_args: Record<string, never>, context: Ctx) => {
         const g = context.globalArgs;
         const projectPath = projectPathFor(g);
+        if (g.withCodeOfConduct && !g.email) {
+          throw new Error(
+            "withCodeOfConduct needs email: the enforcement section names an " +
+              "address, and shipping one that names the template author's is " +
+              "worse than shipping no code of conduct at all. Set email, or " +
+              "set withCodeOfConduct to false.",
+          );
+        }
         const vars = varsFor(g);
         const written: string[] = [];
         const skipped: string[] = [];
