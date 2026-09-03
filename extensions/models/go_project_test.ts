@@ -354,7 +354,7 @@ Deno.test("write_files renders a library into an empty directory", async () => {
     await model.methods.write_files.execute({}, context);
 
     const goMod = await Deno.readTextFile(`${dir}/widget/go.mod`);
-    assertEquals(goMod, "module github.com/retr0h/widget\n\ngo 1.26\n");
+    assert(goMod.startsWith("module github.com/retr0h/widget\n\ngo 1.26\n"));
 
     // Every placeholder substituted, in every file.
     for await (const entry of Deno.readDir(`${dir}/widget`)) {
@@ -520,4 +520,37 @@ Deno.test("check_prereqs probes go with a flag go actually accepts", async () =>
   const { context, written } = testContext({ email: "maintainer@example.com" });
   await model.methods.check_prereqs.execute({}, context);
   assertEquals(written[0].data.status, "prereqs_checked");
+});
+
+Deno.test("go.mod pins the tools the justfile runs", async () => {
+  // The justfile invokes golangci-lint, gofumpt, golines and
+  // gocover-cobertura through `go tool`, which only works when go.mod
+  // declares them. A template that calls a global binary produces a project
+  // whose lint step fails on any machine that has not installed it.
+  await withTempDir(async (dir) => {
+    const { context } = testContext({
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+    const goMod = await Deno.readTextFile(`${dir}/widget/go.mod`);
+    const justfile = await Deno.readTextFile(`${dir}/widget/justfile`);
+
+    for (const tool of [
+      "github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
+      "mvdan.cc/gofumpt",
+      "github.com/segmentio/golines",
+      "github.com/boumenot/gocover-cobertura",
+      "go.uber.org/mock/mockgen",
+    ]) {
+      assert(goMod.includes(tool), `go.mod does not pin ${tool}`);
+    }
+    // Every tool the justfile runs must be pinned.
+    for (const m of justfile.matchAll(/go tool ([a-z0-9.]+\/[^\s]+)/g)) {
+      assert(
+        goMod.includes(m[1]),
+        `justfile runs ${m[1]} but go.mod does not pin it`,
+      );
+    }
+  });
 });

@@ -36,6 +36,14 @@ just-fmt-check:
 
 # --- Go ---
 
+# Run code generation
+#
+# `go generate ./...` honours the //go:generate directives in the source, so
+# adding a generator is a comment in the file that needs it rather than a
+# change here. Override this recipe when a project needs more than that.
+generate:
+    go generate ./...
+
 # Run the tests with coverage
 go-test:
     mkdir -p .coverage
@@ -50,15 +58,27 @@ cov-check:
     echo "coverage: ${total}% (target ${target}%)"
     awk -v t="$total" -v g="$target" 'BEGIN { exit (t+0 >= g+0) ? 0 : 1 }'
 
+# Install the tools go.mod pins
+tools:
+    go get -tool mvdan.cc/gofumpt
+    go get -tool github.com/segmentio/golines
+    go get -tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+    go get -tool github.com/boumenot/gocover-cobertura
+    go get -tool go.uber.org/mock/mockgen
+
 # Run the linters
+#
+# Through `go tool`, not a global binary: go.mod pins the version, so every
+# machine and CI run the same linter.
 lint:
-    golangci-lint run
+    go tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint run --config .golangci.yml
 
 # Format the source
 fmt:
-    go fmt ./...
+    go tool mvdan.cc/gofumpt -w .
+    go tool github.com/segmentio/golines -w --max-len=80 .
 
 # --- Orchestration ---
 
 # Everything CI runs
-ready: deps fmt lint test md-fmt-check just-fmt-check
+ready: deps tools generate fmt lint test md-fmt-check just-fmt-check
