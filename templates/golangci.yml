@@ -63,6 +63,18 @@ linters:
       - path: _test\.go$
         text: "function-length|cognitive-complexity|cyclomatic"
 
+      # A table-driven test compares numbers, and the numbers are the
+      # assertion. `initial: 100ms, attempt: 2, want: 200ms` says the interval
+      # doubles; behind names it says nothing and you go and look up two
+      # constants to find out. Same for a predicate table comparing 4096
+      # against 8192, or four CPUs against eight.
+      #
+      # This exempts numbers only. A string repeated four times is duplication
+      # wherever it appears, so add-constant still reports those here, and
+      # production still names every number it uses.
+      - path: _test\.go$
+        text: "add-constant: avoid magic numbers"
+
 formatters:
   enable:
     - gofmt
@@ -73,3 +85,8 @@ issues:
   # looks like it has exactly 50 problems, forever.
   max-issues-per-linter: 0
   max-same-issues: 0
+  # Default true, which reports one finding per line. Every complexity rule
+  # anchors to the function declaration, so a single line carries all of them
+  # and you are shown whichever came first — runTask read as "82 statements"
+  # until this was set, and was also cyclomatic 24 and cognitive 43.
+  uniq-by-line: false
