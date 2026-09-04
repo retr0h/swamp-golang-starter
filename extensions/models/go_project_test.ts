@@ -19,9 +19,11 @@
 import { assert, assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
   badgesFor,
+  digest,
   expandHome,
   type GlobalArgs,
   GlobalArgsSchema,
+  MANIFEST,
   modulePathFor,
   planFor,
   render,
@@ -453,6 +455,112 @@ Deno.test("write_files leaves an existing file alone by default", async () => {
   });
 });
 
+Deno.test("an untouched entry point is carried forward, not held", async () => {
+  // The point of the manifest. helixctl's main.go was never edited, so the
+  // template's newer one replaces it and cmd/root.go is written beside a
+  // main.go that calls it. Without this the run can only refuse.
+  await withTempDir(async (dir) => {
+    const proj = `${dir}/helixctl`;
+    await Deno.mkdir(proj, { recursive: true });
+
+    // What an older template generated: main.go reaching internal/cli.
+    const oldMain = 'package main\n\nimport "github.com/retr0h/helixctl/' +
+      'internal/cli"\n\nfunc main() { cli.Run() }\n';
+    await Deno.writeTextFile(`${proj}/main.go`, oldMain);
+    await Deno.mkdir(`${proj}/internal/cli`, { recursive: true });
+    await Deno.writeTextFile(`${proj}/internal/cli/cli.go`, "package cli\n");
+
+    await Deno.writeTextFile(
+      `${proj}/${MANIFEST}`,
+      JSON.stringify({
+        version: "2026.09.03.2",
+        files: {
+          "main.go": await digest(oldMain),
+          "internal/cli/cli.go": await digest("package cli\n"),
+        },
+      }),
+    );
+
+    const { context, written } = testContext({
+      projectName: "helixctl",
+      kind: "cli",
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    // main.go was untouched, so it moves to the current template.
+    const main = await Deno.readTextFile(`${proj}/main.go`);
+    assert(main.includes("cmd.Execute()"), "main.go should be brought forward");
+    assert(!main.includes("internal/cli"), "main.go still holds the old shape");
+
+    // And the rest of the entry point is written beside it.
+    assert(await pathExists(`${proj}/cmd/root.go`));
+    assert(await pathExists(`${proj}/internal/helixctl/helixctl.go`));
+
+    // internal/cli is reported, not deleted.
+    assert(
+      await pathExists(`${proj}/internal/cli/cli.go`),
+      "an orphan must be reported, never removed",
+    );
+    assertEquals(
+      written[0].data.filesOrphaned as string[],
+      ["internal/cli/cli.go"],
+    );
+  });
+});
+
+Deno.test("an edited file is left alone even with a manifest", async () => {
+  // The manifest gives permission to rewrite only what nobody has touched.
+  await withTempDir(async (dir) => {
+    const proj = `${dir}/widget`;
+    await Deno.mkdir(proj, { recursive: true });
+    await Deno.writeTextFile(`${proj}/README.md`, "# my own words\n");
+    await Deno.writeTextFile(
+      `${proj}/${MANIFEST}`,
+      JSON.stringify({
+        version: "2026.09.03.2",
+        files: { "README.md": await digest("# whatever it once was\n") },
+      }),
+    );
+
+    const { context } = testContext({
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    assertEquals(
+      await Deno.readTextFile(`${proj}/README.md`),
+      "# my own words\n",
+    );
+  });
+});
+
+Deno.test("a scaffold leaves a manifest the next run can read", async () => {
+  await withTempDir(async (dir) => {
+    const { context } = testContext({
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    const body = await Deno.readTextFile(`${dir}/widget/${MANIFEST}`);
+    const m = JSON.parse(body) as {
+      version: string;
+      files: Record<string, string>;
+    };
+    assertEquals(typeof m.version, "string");
+
+    // Every hash matches the bytes actually on disk, or the next run would
+    // read an edit where there is none.
+    for (const [dest, hash] of Object.entries(m.files)) {
+      const onDisk = await Deno.readTextFile(`${dir}/widget/${dest}`);
+      assertEquals(await digest(onDisk), hash, `${dest} hash is wrong`);
+    }
+  });
+});
+
 Deno.test("a half-present entry point is held, not completed", async () => {
   // helixctl, scaffolded when the entry point was main.go + internal/cli,
   // then retemplated after it became main.go + cmd/ + internal/<pkg>.
@@ -636,6 +744,7 @@ Deno.test("every state write matches StateSchema exactly", async () => {
       "filesWritten",
       "filesSkipped",
       "filesOverwritten",
+      "filesOrphaned",
       "status",
       "updatedAt",
     ]);
