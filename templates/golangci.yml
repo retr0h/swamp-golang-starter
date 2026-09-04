@@ -5,22 +5,42 @@ version: "2"
 
 run:
   timeout: 5m
-  modules-download-mode: readonly
 
 linters:
   enable:
     - errcheck
     - errname
     - govet
+    - ineffassign
     - prealloc
     - predeclared
     - revive
     - staticcheck
     - unused
+
   settings:
     revive:
-      enable-all-rules: true
+      # Named rules, not the whole set: these are conventions Go itself
+      # has an opinion about. Rules that report a threshold are left out.
+      rules:
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: superfluous-else
+        - name: time-naming
+        - name: unused-parameter
+        - name: var-naming
+
   exclusions:
+    paths:
+      # Go shipped inside a JS package. Not ours, and not tracked in git.
+      - node_modules
     presets:
       - comments
       - std-error-handling
@@ -29,3 +49,9 @@ formatters:
   enable:
     - gofmt
     - goimports
+
+issues:
+  # Defaults truncate: 50 findings per linter, and one per line.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: false
