@@ -2,9 +2,10 @@
 
 Test: `just test` | Before committing: `just ready`
 
-Read @CONTRIBUTING.md first. It covers prerequisites, setup, package structure,
-code standards and testing. All of it applies to agents exactly as it applies to
-people. This file carries only what is specific to agents.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first. It covers prerequisites, setup,
+package structure, code standards and testing. All of it applies to agents
+exactly as it applies to people. This file carries only what is specific to
+agents.
 
 ## Running tools
 
