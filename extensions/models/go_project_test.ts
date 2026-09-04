@@ -36,7 +36,10 @@ function args(overrides: Partial<GlobalArgs> = {}): GlobalArgs {
 // --- render ---
 
 Deno.test("render substitutes a known placeholder", () => {
-  assertEquals(render("module @@modulePath@@", { modulePath: "x/y" }), "module x/y");
+  assertEquals(
+    render("module @@modulePath@@", { modulePath: "x/y" }),
+    "module x/y",
+  );
 });
 
 Deno.test("render tolerates whitespace inside the delimiters", () => {
@@ -77,6 +80,68 @@ Deno.test("planFor marks every hand-written file unmanaged", () => {
     const entry = plan.find((e) => e.dest === dest);
     assert(entry, `${dest} missing from the plan`);
     assertEquals(entry.managed, false, `${dest} must not be managed`);
+  }
+});
+
+Deno.test("the entry point's files are one group", () => {
+  // main.go imports cmd, cmd imports internal/<pkg>. A retemplate that
+  // skipped main.go because it exists and wrote cmd/root.go because it did
+  // not left helixctl with a main.go calling internal/cli and a cmd/root.go
+  // nothing reached — compiling, passing its gate, and meaning nothing.
+  const plan = planFor(args({ kind: "cli", projectName: "helixctl" }));
+  const entrypoint = plan
+    .filter((e) => e.group === "entrypoint")
+    .map((e) => e.dest)
+    .sort();
+
+  assertEquals(entrypoint, [
+    "cmd/root.go",
+    "internal/helixctl/helixctl.go",
+    "internal/helixctl/helixctl_test.go",
+    "main.go",
+  ]);
+
+  // Every member is seeded; a group only matters for files retemplate
+  // otherwise writes when absent.
+  for (const dest of entrypoint) {
+    assertEquals(plan.find((e) => e.dest === dest)?.managed, false);
+  }
+});
+
+Deno.test("the library stub and its test are one group", () => {
+  // lib_test.go.txt calls a function lib.go.txt defines. Writing the test
+  // into a project whose stub predates that function gives `undefined:
+  // helixcore.Name`.
+  const plan = planFor(args({ kind: "lib", projectName: "helix-core" }));
+  const stub = plan
+    .filter((e) => e.group === "stub")
+    .map((e) => e.dest)
+    .sort();
+
+  assertEquals(stub, [
+    "pkg/helixcore/helixcore.go",
+    "pkg/helixcore/helixcore_test.go",
+  ]);
+});
+
+Deno.test("a group never spans the managed and seeded split", () => {
+  // Grouping exists to stop a partial write of files that must agree. A
+  // managed file is rewritten under `overwrite` regardless, so mixing the
+  // two in one group would describe a rule that does not hold.
+  for (const kind of ["lib", "cli"] as const) {
+    const plan = planFor(args({ kind }));
+    const byGroup = new Map<string, boolean[]>();
+    for (const e of plan.filter((x) => x.group)) {
+      const seen = byGroup.get(e.group!) ?? [];
+      seen.push(e.managed);
+      byGroup.set(e.group!, seen);
+    }
+    for (const [group, managed] of byGroup) {
+      assert(
+        managed.every((m) => m === managed[0]),
+        `${kind}: group ${group} mixes managed and seeded files`,
+      );
+    }
   }
 });
 
@@ -123,16 +188,18 @@ Deno.test("planFor honours every gate", () => {
     withReposJson: false,
   }));
   const dests = off.map((e) => e.dest);
-  for (const gated of [
-    ".github/workflows/go.yml",
-    ".goreleaser.yaml",
-    ".github/codecov.yml",
-    ".github/dependabot.yml",
-    ".github/labeler.yml",
-    "AGENTS.md",
-    "CODE_OF_CONDUCT.md",
-    ".github/repos.json",
-  ]) {
+  for (
+    const gated of [
+      ".github/workflows/go.yml",
+      ".goreleaser.yaml",
+      ".github/codecov.yml",
+      ".github/dependabot.yml",
+      ".github/labeler.yml",
+      "AGENTS.md",
+      "CODE_OF_CONDUCT.md",
+      ".github/repos.json",
+    ]
+  ) {
     assert(!dests.includes(gated), `${gated} survived its gate`);
   }
   // The floor is still a project.
@@ -163,7 +230,10 @@ Deno.test("badgesFor includes release badges for a released command", () => {
 });
 
 Deno.test("badgesFor omits the codecov badge when coverage is not uploaded", () => {
-  const none = badgesFor(args({ withCodecov: false }), "github.com/retr0h/widget");
+  const none = badgesFor(
+    args({ withCodecov: false }),
+    "github.com/retr0h/widget",
+  );
   assert(!none.includes("codecov"));
 });
 
@@ -197,7 +267,10 @@ Deno.test("expandHome resolves a leading tilde", () => {
 
 Deno.test("varsFor turns a hyphenated name into a legal package name", () => {
   // Go package names cannot contain hyphens.
-  assertEquals(varsFor(args({ projectName: "my-widget" })).packageName, "mywidget");
+  assertEquals(
+    varsFor(args({ projectName: "my-widget" })).packageName,
+    "mywidget",
+  );
 });
 
 Deno.test("varsFor picks the install line from the project shape", () => {
@@ -235,7 +308,10 @@ Deno.test("every template the plan names is listed once", () => {
   const manifest = Deno.readTextFileSync(
     new URL("../../manifest.yaml", import.meta.url),
   );
-  const both = [...planFor(args({ kind: "cli" })), ...planFor(args({ kind: "lib" }))];
+  const both = [
+    ...planFor(args({ kind: "cli" })),
+    ...planFor(args({ kind: "lib" })),
+  ];
   for (const entry of both) {
     assert(
       manifest.includes(`templates/${entry.template}`),
@@ -245,7 +321,6 @@ Deno.test("every template the plan names is listed once", () => {
 });
 
 // --- coupling between the workflows and everything they invoke ---
-
 
 Deno.test("a workflow never ships without the config it reads", () => {
   const noLabeler = planFor(args({ withLabeler: false })).map((e) => e.dest);
@@ -257,7 +332,9 @@ Deno.test("a workflow never ships without the config it reads", () => {
   assert(withLabeler.includes(".github/labeler.yml"));
 
   // release.yml reads .goreleaser.yaml
-  const noRel = planFor(args({ kind: "cli", withReleaser: false })).map((e) => e.dest);
+  const noRel = planFor(args({ kind: "cli", withReleaser: false })).map((e) =>
+    e.dest
+  );
   assert(!noRel.includes(".github/workflows/release.yml"));
   assert(!noRel.includes(".goreleaser.yaml"));
 });
@@ -317,6 +394,16 @@ async function withTempDir(body: (dir: string) => Promise<void>) {
   }
 }
 
+/** Whether a path is on disk, for assertions about what was not written. */
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await Deno.lstat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 Deno.test("write_files renders a library into an empty directory", async () => {
   await withTempDir(async (dir) => {
     const { context, written } = testContext({
@@ -334,7 +421,10 @@ Deno.test("write_files renders a library into an empty directory", async () => {
     for await (const entry of Deno.readDir(`${dir}/widget`)) {
       if (!entry.isFile) continue;
       const body = await Deno.readTextFile(`${dir}/widget/${entry.name}`);
-      assert(!body.includes("@@"), `${entry.name} has an unrendered placeholder`);
+      assert(
+        !body.includes("@@"),
+        `${entry.name} has an unrendered placeholder`,
+      );
     }
 
     const state = written[0].data;
@@ -355,8 +445,105 @@ Deno.test("write_files leaves an existing file alone by default", async () => {
     });
     await model.methods.write_files.execute({}, context);
 
-    assertEquals(await Deno.readTextFile(`${dir}/widget/README.md`), "# mine\n");
+    assertEquals(
+      await Deno.readTextFile(`${dir}/widget/README.md`),
+      "# mine\n",
+    );
     assert((written[0].data.filesSkipped as string[]).includes("README.md"));
+  });
+});
+
+Deno.test("a half-present entry point is held, not completed", async () => {
+  // helixctl, scaffolded when the entry point was main.go + internal/cli,
+  // then retemplated after it became main.go + cmd/ + internal/<pkg>.
+  // main.go existed so it was skipped; the rest were absent so they were
+  // written. The result compiled, passed `just ready`, and had a main.go
+  // reaching code the template had replaced.
+  await withTempDir(async (dir) => {
+    await Deno.mkdir(`${dir}/helixctl`, { recursive: true });
+    await Deno.writeTextFile(
+      `${dir}/helixctl/main.go`,
+      'package main\n\nimport "github.com/retr0h/helixctl/internal/cli"\n\n' +
+        "func main() { cli.Run() }\n",
+    );
+
+    const { context, written } = testContext({
+      projectName: "helixctl",
+      kind: "cli",
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    // The old main.go is still the project's own.
+    const main = await Deno.readTextFile(`${dir}/helixctl/main.go`);
+    assert(main.includes("internal/cli"), "main.go must not be rewritten");
+
+    // And nothing was written beside it that expects the new shape.
+    for (const orphan of ["cmd/root.go", "internal/helixctl/helixctl.go"]) {
+      assertEquals(
+        await pathExists(`${dir}/helixctl/${orphan}`),
+        false,
+        `${orphan} was written into a project holding the older entry point`,
+      );
+    }
+
+    const skipped = written[0].data.filesSkipped as string[];
+    assert(skipped.includes("cmd/root.go"), "cmd/root.go should be held");
+  });
+});
+
+Deno.test("a half-present library stub is held, not completed", async () => {
+  // lib.go.txt gained Name() and lib_test.go.txt calls it. Writing the test
+  // beside a stub that predates the function gives `undefined: helixcore.Name`.
+  await withTempDir(async (dir) => {
+    await Deno.mkdir(`${dir}/helix-core/pkg/helixcore`, { recursive: true });
+    await Deno.writeTextFile(
+      `${dir}/helix-core/pkg/helixcore/helixcore.go`,
+      "package helixcore\n",
+    );
+
+    const { context } = testContext({
+      projectName: "helix-core",
+      kind: "lib",
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    assertEquals(
+      await pathExists(`${dir}/helix-core/pkg/helixcore/helixcore_test.go`),
+      false,
+      "the test was written against a stub that cannot satisfy it",
+    );
+  });
+});
+
+Deno.test("an empty directory still gets the whole group", async () => {
+  // The hold must not stop a fresh scaffold: with no member present there
+  // are two generations to mix.
+  await withTempDir(async (dir) => {
+    const { context } = testContext({
+      projectName: "helixctl",
+      kind: "cli",
+      parentDir: dir,
+      email: "maintainer@example.com",
+    });
+    await model.methods.write_files.execute({}, context);
+
+    for (
+      const member of [
+        "main.go",
+        "cmd/root.go",
+        "internal/helixctl/helixctl.go",
+        "internal/helixctl/helixctl_test.go",
+      ]
+    ) {
+      assert(
+        await pathExists(`${dir}/helixctl/${member}`),
+        `${member} missing from a fresh scaffold`,
+      );
+    }
   });
 });
 
@@ -364,7 +551,10 @@ Deno.test("overwrite rewrites generated files and spares seeded ones", async () 
   await withTempDir(async (dir) => {
     await Deno.mkdir(`${dir}/widget/.github/workflows`, { recursive: true });
     await Deno.writeTextFile(`${dir}/widget/README.md`, "# hand written\n");
-    await Deno.writeTextFile(`${dir}/widget/.github/workflows/go.yml`, "stale\n");
+    await Deno.writeTextFile(
+      `${dir}/widget/.github/workflows/go.yml`,
+      "stale\n",
+    );
 
     const { context, written } = testContext({
       parentDir: dir,
@@ -379,7 +569,9 @@ Deno.test("overwrite rewrites generated files and spares seeded ones", async () 
       "# hand written\n",
     );
     // Managed: refreshed.
-    const wf = await Deno.readTextFile(`${dir}/widget/.github/workflows/go.yml`);
+    const wf = await Deno.readTextFile(
+      `${dir}/widget/.github/workflows/go.yml`,
+    );
     assert(wf.includes("name: Go"));
 
     const state = written[0].data;
@@ -436,8 +628,16 @@ Deno.test("every state write matches StateSchema exactly", async () => {
     await model.methods.create_project.execute({}, context);
 
     const fields = new Set([
-      "projectName", "projectPath", "modulePath", "kind", "goVersion",
-      "filesWritten", "filesSkipped", "filesOverwritten", "status", "updatedAt",
+      "projectName",
+      "projectPath",
+      "modulePath",
+      "kind",
+      "goVersion",
+      "filesWritten",
+      "filesSkipped",
+      "filesOverwritten",
+      "status",
+      "updatedAt",
     ]);
     for (const w of written) {
       assertEquals(
@@ -510,13 +710,15 @@ Deno.test("go.mod pins the tools the justfile runs", async () => {
     const goMod = await Deno.readTextFile(`${dir}/widget/go.mod`);
     const justfile = await Deno.readTextFile(`${dir}/widget/justfile`);
 
-    for (const tool of [
-      "github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
-      "mvdan.cc/gofumpt",
-      "github.com/segmentio/golines",
-      "github.com/boumenot/gocover-cobertura",
-      "go.uber.org/mock/mockgen",
-    ]) {
+    for (
+      const tool of [
+        "github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
+        "mvdan.cc/gofumpt",
+        "github.com/segmentio/golines",
+        "github.com/boumenot/gocover-cobertura",
+        "go.uber.org/mock/mockgen",
+      ]
+    ) {
       assert(goMod.includes(tool), `go.mod does not pin ${tool}`);
     }
     // Every tool the justfile runs must be pinned.
@@ -624,7 +826,6 @@ Deno.test("a command puts its definitions in cmd/, untested", () => {
   );
 });
 
-
 Deno.test("golangci config is v2 format, not v1 keys under a v2 version", () => {
   // `version: 2` with linters-settings/exclude-use-default is rejected by
   // `golangci-lint config verify`, and `run` silently ignores them — so
@@ -632,9 +833,12 @@ Deno.test("golangci config is v2 format, not v1 keys under a v2 version", () => 
   const cfg = Deno.readTextFileSync(
     new URL("../../templates/golangci.yml", import.meta.url),
   );
-  assert(cfg.includes('version: "2"'), "version must be the string \"2\"");
+  assert(cfg.includes('version: "2"'), 'version must be the string "2"');
   assert(!cfg.includes("linters-settings:"), "linters-settings is a v1 key");
-  assert(!cfg.includes("exclude-use-default:"), "exclude-use-default is a v1 key");
+  assert(
+    !cfg.includes("exclude-use-default:"),
+    "exclude-use-default is a v1 key",
+  );
   assert(cfg.includes("  settings:"), "v2 nests settings under linters");
 });
 
@@ -649,13 +853,27 @@ Deno.test("revive rules are named, not enabled wholesale", () => {
   );
   assert(!cfg.includes("enable-all-rules"), "name the rules individually");
 
-  for (const rule of ["var-naming", "receiver-naming", "error-strings",
-                      "indent-error-flow", "unused-parameter"]) {
+  for (
+    const rule of [
+      "var-naming",
+      "receiver-naming",
+      "error-strings",
+      "indent-error-flow",
+      "unused-parameter",
+    ]
+  ) {
     assert(cfg.includes(`- name: ${rule}`), `${rule} should be enabled`);
   }
 
-  for (const rule of ["line-length-limit", "cognitive-complexity",
-                      "cyclomatic", "function-length", "add-constant"]) {
+  for (
+    const rule of [
+      "line-length-limit",
+      "cognitive-complexity",
+      "cyclomatic",
+      "function-length",
+      "add-constant",
+    ]
+  ) {
     assert(!cfg.includes(rule), `${rule} measures rather than finds`);
   }
 
@@ -667,7 +885,6 @@ Deno.test("revive rules are named, not enabled wholesale", () => {
   assert(cfg.includes("max-issues-per-linter: 0"));
   assert(cfg.includes("uniq-by-line: false"));
 });
-
 
 Deno.test("the justfile is the one this organization already runs", () => {
   // Not an invention. It imports the shared modules and delegates, so the
@@ -683,13 +900,15 @@ Deno.test("the justfile is the one this organization already runs", () => {
     assert(justfile.includes(`\n${recipe}`), `missing recipe ${recipe}`);
   }
   // ready delegates; it does not reimplement.
-  for (const step of [
-    "just generate",
-    "just md-fmt",
-    "just go-fmt",
-    "just go-vet",
-    "just just-fmt",
-  ]) {
+  for (
+    const step of [
+      "just generate",
+      "just md-fmt",
+      "just go-fmt",
+      "just go-vet",
+      "just just-fmt",
+    ]
+  ) {
     assert(justfile.includes(step), `ready does not run ${step}`);
   }
 });

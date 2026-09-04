@@ -409,6 +409,31 @@ export interface PlanEntry {
    * never touches it.
    */
   managed: boolean;
+
+  /**
+   * Seeded files that only make sense together.
+   *
+   * `main.go` imports `cmd`, `cmd` imports `internal/<pkg>`; the lib stub's
+   * test calls a function its source defines. They are one structure written
+   * in several files, not several independent files.
+   *
+   * A seeded file is skipped when it exists and written when it does not, so
+   * a template revision that moves this structure writes its new members
+   * beside the old ones — `cmd/root.go` calling code that `main.go` never
+   * reaches. The group makes the set atomic: if any member is already there,
+   * none are written.
+   */
+  group?: string;
+}
+
+/** Whether a path is already on disk. */
+async function exists(path: string): Promise<boolean> {
+  try {
+    await Deno.lstat(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -450,18 +475,26 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
       template: "lib.go.txt",
       dest: `pkg/${pkg}/${pkg}.go`,
       managed: false,
+      group: "stub",
     });
     files.push({
       template: "lib_test.go.txt",
       dest: `pkg/${pkg}/${pkg}_test.go`,
       managed: false,
+      group: "stub",
     });
   } else {
-    files.push({ template: "main.go.txt", dest: "main.go", managed: false });
+    files.push({
+      template: "main.go.txt",
+      dest: "main.go",
+      managed: false,
+      group: "entrypoint",
+    });
     files.push({
       template: "cmd_root.go.txt",
       dest: "cmd/root.go",
       managed: false,
+      group: "entrypoint",
     });
     // cmd/ and main.go are excluded from coverage, so a command needs a
     // package the gate can reach — the same shape gohai has.
@@ -469,11 +502,13 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
       template: "internal.go.txt",
       dest: `internal/${pkg}/${pkg}.go`,
       managed: false,
+      group: "entrypoint",
     });
     files.push({
       template: "internal_test.go.txt",
       dest: `internal/${pkg}/${pkg}_test.go`,
       managed: false,
+      group: "entrypoint",
     });
     if (g.withReleaser) {
       files.push({
@@ -806,25 +841,55 @@ export const model = {
         const skipped: string[] = [];
         const overwritten: string[] = [];
 
-        for (const file of planFor(g)) {
-          const dest = `${projectPath}/${file.dest}`;
+        const plan = planFor(g);
+        const present = new Map<string, boolean>();
 
-          // A re-run must be safe on a project someone has since edited, so
-          // an existing file is left alone unless overwrite says otherwise.
-          let exists = true;
-          try {
-            await Deno.lstat(dest);
-          } catch {
-            exists = false;
+        for (const file of plan) {
+          present.set(file.dest, await exists(`${projectPath}/${file.dest}`));
+        }
+
+        // A group is written whole or not at all. One member already on disk
+        // means this project was generated before the template moved that
+        // structure, and writing the rest would leave it holding two.
+        const heldGroups = new Set<string>();
+        for (const file of plan) {
+          if (file.group && present.get(file.dest)) {
+            heldGroups.add(file.group);
           }
-          if (exists) {
+        }
+
+        for (const file of plan) {
+          const dest = `${projectPath}/${file.dest}`;
+          const here = present.get(file.dest) ?? false;
+
+          if (here) {
             // `overwrite` reaches generated files only. A seeded file is the
             // project's own writing by now, and no template can reproduce it.
             if (!g.overwrite || !file.managed) {
               skipped.push(file.dest);
+              context.logger.info("  skip  {dest} ({why})", {
+                dest: file.dest,
+                why: file.managed ? "exists, no overwrite" : "seeded",
+              });
               continue;
             }
             overwritten.push(file.dest);
+            context.logger.info("  over  {dest}", { dest: file.dest });
+          } else if (file.group && heldGroups.has(file.group)) {
+            // The dangerous case, and the reason this is not just a skip:
+            // silently writing it produces a project that compiles, passes
+            // its gate, and means nothing.
+            skipped.push(file.dest);
+            context.logger.info(
+              "  HOLD  {dest} — the {group} files this project already has " +
+                "came from an earlier template. Writing this one would mix " +
+                "two generations. Reconcile that structure by hand, or " +
+                "remove all of its files and re-run.",
+              { dest: file.dest, group: file.group },
+            );
+            continue;
+          } else {
+            context.logger.info("  write {dest}", { dest: file.dest });
           }
 
           const template = await Deno.readTextFile(
