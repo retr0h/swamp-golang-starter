@@ -42,12 +42,6 @@ linters:
         # nothing, and naming them makes the code worse. Left at its defaults
         # this rule reported 225 findings on nats-client, 116 of them the
         # literal 1.
-        # A file that models an external API's JSON has as many structs as
-        # that API has objects — azure's metadata document is 18 of them.
-        # Splitting such a file to satisfy a count organises it by number
-        # rather than by meaning.
-        - name: max-public-structs
-          disabled: true
         - name: add-constant
           arguments:
             # In strconv.ParseInt(s, 10, 64) the base and the bit size are
@@ -57,6 +51,12 @@ linters:
               allowInts: "0,1,2"
               allowStrs: '""'
               maxLitCount: "3"
+        # A file that models an external API's JSON has as many structs as
+        # that API has objects — azure's metadata document is 18 of them.
+        # Splitting such a file to satisfy a count organises it by number
+        # rather than by meaning.
+        - name: max-public-structs
+          disabled: true
   exclusions:
     presets:
       - comments
