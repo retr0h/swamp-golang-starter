@@ -42,9 +42,19 @@ linters:
         # nothing, and naming them makes the code worse. Left at its defaults
         # this rule reported 225 findings on nats-client, 116 of them the
         # literal 1.
+        # A file that models an external API's JSON has as many structs as
+        # that API has objects — azure's metadata document is 18 of them.
+        # Splitting such a file to satisfy a count organises it by number
+        # rather than by meaning.
+        - name: max-public-structs
+          disabled: true
         - name: add-constant
           arguments:
-            - allowInts: "0,1,2"
+            # In strconv.ParseInt(s, 10, 64) the base and the bit size are
+            # part of the call's grammar, not values hidden behind a
+            # literal. Naming them base10 and bitSize64 reads worse.
+            - ignoreFuncs: 'strconv\.Parse.*,strconv\.Format.*,strconv\.Append.*'
+              allowInts: "0,1,2"
               allowStrs: '""'
               maxLitCount: "3"
   exclusions:
