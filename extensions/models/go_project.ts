@@ -643,6 +643,11 @@ export const model = {
       description: "AGENTS.md links CONTRIBUTING.md rather than importing it",
       upgradeAttributes: (old: Record<string, unknown>) => old,
     },
+    {
+      toVersion: "2026.09.04.3",
+      description: "retemplate records what it wrote; no schema change",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
   ],
   globalArguments: GlobalArgsSchema,
   resources: {
