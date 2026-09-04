@@ -638,6 +638,36 @@ Deno.test("golangci config is v2 format, not v1 keys under a v2 version", () => 
   assert(cfg.includes("  settings:"), "v2 nests settings under linters");
 });
 
+Deno.test("revive rules are named, not enabled wholesale", () => {
+  // enable-all-rules turns on the rules that report a number somebody
+  // picked — a line length, a complexity score, a count of repeated
+  // literals. Across the osapi-io repositories that was 1,363 findings,
+  // almost none of them defects. The list here is the conventions Go
+  // itself has an opinion about.
+  const cfg = Deno.readTextFileSync(
+    new URL("../../templates/golangci.yml", import.meta.url),
+  );
+  assert(!cfg.includes("enable-all-rules"), "name the rules individually");
+
+  for (const rule of ["var-naming", "receiver-naming", "error-strings",
+                      "indent-error-flow", "unused-parameter"]) {
+    assert(cfg.includes(`- name: ${rule}`), `${rule} should be enabled`);
+  }
+
+  for (const rule of ["line-length-limit", "cognitive-complexity",
+                      "cyclomatic", "function-length", "add-constant"]) {
+    assert(!cfg.includes(rule), `${rule} measures rather than finds`);
+  }
+
+  // Go vendored inside a JS dependency tree is not ours, and is not even
+  // tracked in git.
+  assert(cfg.includes("node_modules"), "node_modules must be excluded");
+
+  // Without these the output is silently truncated.
+  assert(cfg.includes("max-issues-per-linter: 0"));
+  assert(cfg.includes("uniq-by-line: false"));
+});
+
 
 Deno.test("the justfile is the one this organization already runs", () => {
   // Not an invention. It imports the shared modules and delegates, so the
