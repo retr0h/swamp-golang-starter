@@ -550,7 +550,14 @@ export function planFor(g: GlobalArgs): PlanEntry[] {
 /** Model definition for scaffolding a Go project. */
 export const model = {
   type: "@retr0h/go-project",
-  version: "2026.09.03.5",
+  version: "2026.09.04.1",
+  upgrades: [
+    {
+      toVersion: "2026.09.04.1",
+      description: "golangci template names its revive rules; no schema change",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+  ],
   globalArguments: GlobalArgsSchema,
   resources: {
     "state": {
