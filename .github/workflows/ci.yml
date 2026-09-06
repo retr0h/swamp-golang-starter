@@ -17,6 +17,28 @@ jobs:
         with:
           deno-version: v2.x
 
+      # check_prereqs runs the real probe rather than a stub, so the
+      # tools it probes for have to be here. That is the point of the
+      # test: it catches a probe spelled in a way the tool rejects.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install just
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh \
+            | bash -s -- --to /usr/local/bin
+
+      # Nothing ran these until now, so a stale test command in
+      # CONTRIBUTING went unnoticed and 19 of 58 failed on a clean
+      # checkout. The tests make temp directories and probe go and just,
+      # hence the write and run permissions.
+      - name: deno test
+        run: deno test --allow-read --allow-env --allow-write --allow-run extensions/models/
+
+      - name: deno check
+        run: deno check extensions/models/go_project.ts
+
       - name: Install swamp CLI
         run: curl -fsSL https://swamp.club/install.sh | sh
 

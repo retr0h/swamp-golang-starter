@@ -76,7 +76,7 @@ untouched. There are tests for that.
 ## Testing
 
 ```bash
-~/.swamp/deno/deno test --allow-read --allow-env extensions/models/
+~/.swamp/deno/deno test --allow-read --allow-env --allow-write --allow-run extensions/models/
 ~/.swamp/deno/deno check extensions/models/go_project.ts
 ```
 
@@ -147,7 +147,7 @@ swamp extension push manifest.yaml
 
 ```bash
 swamp extension fmt manifest.yaml
-~/.swamp/deno/deno test --allow-read --allow-env extensions/models/
+~/.swamp/deno/deno test --allow-read --allow-env --allow-write --allow-run extensions/models/
 ```
 
 ## Branching
