@@ -434,7 +434,7 @@ export interface PlanEntry {
 export const MANIFEST = ".swamp-template.json";
 
 /** The model's version, recorded in every manifest this writes. */
-export const MODEL_VERSION = "2026.09.06.1";
+export const MODEL_VERSION = "2026.09.06.2";
 
 interface Manifest {
   /** Extension version that generated these files. */
@@ -651,6 +651,11 @@ export const model = {
     {
       toVersion: "2026.09.06.1",
       description: "withReposJson now defaults to true; no schema change",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+    {
+      toVersion: "2026.09.06.2",
+      description: "README defers setup to CONTRIBUTING; no schema change",
       upgradeAttributes: (old: Record<string, unknown>) => old,
     },
   ],
