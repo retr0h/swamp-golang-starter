@@ -16,7 +16,7 @@
 
 ## Documentation
 
-[Package documentation](https://pkg.go.dev/@@goReference@@) on pkg.go.dev.
+- [Package documentation](https://pkg.go.dev/@@goReference@@) on pkg.go.dev.
 
 ## Contributing
 
