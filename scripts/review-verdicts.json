@@ -1,7 +1,7 @@
 {
   "extension": "@retr0h/golang-starter",
-  "version": "2026.09.03.5",
-  "reviewedAt": "2026-09-03T21:20:00Z",
+  "version": "2026.09.06.4",
+  "reviewedAt": "2026-09-06T20:48:20Z",
   "dimensions": [
     {
       "id": "credentials-secrets",
@@ -21,7 +21,7 @@
     {
       "id": "testing-completeness",
       "verdict": "pass",
-      "note": "48 tests over the pure functions, execute(), and the pre-flight checks. Four were added after a second agent used the extension for real and found what this suite could not see: a generated project could not pass its own just ready. The suite now asserts that a library ships a test for its stub, that a command keeps its logic in internal/ where coverage can reach it, that the golangci config is v2 format rather than v1 keys under a v2 version, and that ready formats markdown rather than checking it."
+      "note": "58 tests over the pure functions, execute(), and the pre-flight checks. Four were added after a second agent used the extension for real and found what this suite could not see: a generated project could not pass its own just ready. The suite asserts that a library ships a test for its stub, that a command keeps its logic in internal/ where coverage can reach it, that the golangci config is v2 format rather than v1 keys under a v2 version, and that ready formats markdown rather than checking it. Ten more cover the retemplate dispositions: an untouched file is updated, an edited one is skipped, and a half-present entry point or stub is held rather than completed from a newer template. This release closes a hole the suite could not close itself: nothing ran these tests automatically. CI formatted, checked drift and dry-ran the push, but never invoked deno test, so a stale command in CONTRIBUTING left 19 of 58 failing on a clean checkout with nothing to report it. CI now runs them on every pull request, with go and just installed because check_prereqs probes the real tools rather than a stub."
     },
     {
       "id": "idempotency-resilience",
@@ -75,8 +75,8 @@
     },
     {
       "id": "version-upgrades",
-      "verdict": "na",
-      "note": "First version. Nothing published to upgrade from, no migration to declare."
+      "verdict": "pass",
+      "note": "Seven published versions. The model declares an upgrade entry for each, and every one is a no-op returning attributes unchanged, which is honest: no release has altered GlobalArgsSchema. Templates and plan behavior changed instead, which retemplate carries rather than a migration. MODEL_VERSION, manifest.yaml and the instance typeVersion are bumped together; a mismatch is what would strand a consumer."
     }
   ]
 }
