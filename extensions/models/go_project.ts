@@ -137,9 +137,9 @@ export const GlobalArgsSchema = z.object({
     ),
   withReposJson: z
     .boolean()
-    .default(false)
+    .default(true)
     .describe(
-      "'.github/repos.json' for gh-reposync. Off by default: it declares branch protection, which most consumers will not want applied.",
+      "'.github/repos.json' for gh-reposync. The file alone changes nothing — settings move only when someone runs `gh reposync` — so shipping it costs nothing and having to add it later costs a commit.",
     ),
 });
 

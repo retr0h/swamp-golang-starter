@@ -24,6 +24,7 @@ import {
   type GlobalArgs,
   GlobalArgsSchema,
   MANIFEST,
+  MODEL_VERSION,
   modulePathFor,
   planFor,
   render,
@@ -145,6 +146,25 @@ Deno.test("a group never spans the managed and seeded split", () => {
       );
     }
   }
+});
+
+Deno.test("a scaffold ships repos.json and a current typeVersion", () => {
+  // Every repository in this organization carries .github/repos.json, so a
+  // default of false meant every consumer added it by hand. The file alone
+  // changes nothing — settings move only when someone runs `gh reposync`.
+  const plan = planFor(args());
+  assert(
+    plan.some((e) => e.dest === ".github/repos.json"),
+    "repos.json should be in the default plan",
+  );
+
+  // The shipped instance is what a consumer copies. One three versions
+  // behind upgrades on first use, which works but should not be shipped.
+  const inst = Deno.readTextFileSync(
+    new URL("../../instances/go-project.yaml", import.meta.url),
+  );
+  const declared = inst.match(/^typeVersion:\s*(\S+)/m)?.[1];
+  assertEquals(declared, MODEL_VERSION, "instance typeVersion is stale");
 });
 
 Deno.test("planFor marks generated files managed", () => {
