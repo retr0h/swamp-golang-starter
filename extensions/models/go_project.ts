@@ -314,9 +314,6 @@ export function badgesFor(g: GlobalArgs, modulePath: string): string {
     );
   }
   rows.push(
-    `[![go report card](https://goreportcard.com/badge/${modulePath}?${style})](https://goreportcard.com/report/${modulePath})`,
-  );
-  rows.push(
     `[![license](https://img.shields.io/badge/license-${g.license}-brightgreen.svg?${style})](LICENSE)`,
   );
   if (g.withCI) {
@@ -434,7 +431,7 @@ export interface PlanEntry {
 export const MANIFEST = ".swamp-template.json";
 
 /** The model's version, recorded in every manifest this writes. */
-export const MODEL_VERSION = "2026.09.06.4";
+export const MODEL_VERSION = "2026.09.07.1";
 
 interface Manifest {
   /** Extension version that generated these files. */
@@ -666,6 +663,11 @@ export const model = {
     {
       toVersion: "2026.09.06.4",
       description: "CONTRIBUTING matches the org standard; no schema change",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+    {
+      toVersion: "2026.09.07.1",
+      description: "drops the retired Go Report Card badge; no schema change",
       upgradeAttributes: (old: Record<string, unknown>) => old,
     },
   ],
