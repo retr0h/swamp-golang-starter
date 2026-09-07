@@ -1,7 +1,7 @@
 {
   "extension": "@retr0h/golang-starter",
-  "version": "2026.09.06.4",
-  "reviewedAt": "2026-09-06T20:48:20Z",
+  "version": "2026.09.07.1",
+  "reviewedAt": "2026-09-07T18:17:59Z",
   "dimensions": [
     {
       "id": "credentials-secrets",
@@ -41,7 +41,7 @@
     {
       "id": "published-surface-hygiene",
       "verdict": "pass",
-      "note": "CODE_OF_CONDUCT.md shipped the template author's address in its enforcement section, so every consumer would have named a stranger as the person to report harassment to. It takes a variable now, with both a pre-flight check and a guard refusing without one. AI_POLICY.md named an unrelated organization four times and is generic. No IPs, hostnames, subnets or account identifiers. One real URL by design: justfilesRepo, used only when sharedJustfiles is on, which is off by default."
+      "note": "CODE_OF_CONDUCT.md shipped the template author's address in its enforcement section, so every consumer would have named a stranger as the person to report harassment to. It takes a variable now, with both a pre-flight check and a guard refusing without one. AI_POLICY.md named an unrelated organization four times and is generic. No IPs, hostnames, subnets or account identifiers. One real URL by design: justfilesRepo, used only when sharedJustfiles is on, which is off by default. The Go Report Card badge is gone: goreportcard.com was sunset and the badge rendered \"retired\" in every generated README. A generated project should not ship a link to a dead service."
     },
     {
       "id": "schema-strictness",
@@ -76,7 +76,7 @@
     {
       "id": "version-upgrades",
       "verdict": "pass",
-      "note": "Seven published versions. The model declares an upgrade entry for each, and every one is a no-op returning attributes unchanged, which is honest: no release has altered GlobalArgsSchema. Templates and plan behavior changed instead, which retemplate carries rather than a migration. MODEL_VERSION, manifest.yaml and the instance typeVersion are bumped together; a mismatch is what would strand a consumer."
+      "note": "Eight published versions. The model declares an upgrade entry for each, and every one is a no-op returning attributes unchanged, which is honest: no release has altered GlobalArgsSchema. Templates and plan behavior changed instead, which retemplate carries rather than a migration. MODEL_VERSION, manifest.yaml and the instance typeVersion are bumped together; a mismatch is what would strand a consumer."
     }
   ]
 }
