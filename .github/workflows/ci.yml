@@ -9,6 +9,12 @@ jobs:
   validate:
     name: swamp extension validate
     runs-on: ubuntu-latest
+    # swamp refuses to run without a swamp-club.com account. In CI it reads
+    # the account from these two secrets.
+    # https://swamp-club.com/manual/reference/swamp-account-requirement
+    env:
+      SWAMP_API_KEY: ${{ secrets.SWAMP_API_KEY }}
+      SWAMP_SIGNIN_TOKEN: ${{ secrets.SWAMP_SIGNIN_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
