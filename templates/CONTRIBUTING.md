@@ -40,18 +40,14 @@ mise install
 
 ### Coding agents
 
-This repository works with any coding agent that reads `AGENTS.md`. Claude Code
-and Codex read the same skills: `.claude/skills` holds them, and
-`.agents/skills` is a link to it. `CLAUDE.md` only points to `AGENTS.md`.
+This repository works with any coding agent that reads `AGENTS.md`. `CLAUDE.md`
+only points to `AGENTS.md`. Prepare your agent as its documentation tells you.
+This repository does not need a plugin or an extension.
 
-For [Claude Code], install this plugin from the default marketplace:
+<!-- Keep the next paragraph only in a repository that has .claude/skills. -->
 
-```
-/plugin install commit-commands@claude-plugins-official
-```
-
-- **commit-commands.** It gives the `/commit` and `/commit-push-pr` commands.
-  They follow the commit rules of this repository.
+Agents read the skills of this repository from `.claude/skills`.
+`.agents/skills` is a link to that directory, for agents that read that path.
 
 ## Setup
 
@@ -256,9 +252,6 @@ type:
 - `refactor/simplify-handler`
 - `chore/update-dependencies`
 
-If you are on `@@defaultBranch@@`, the `/commit` command of Claude Code makes
-the branch for you.
-
 ## Commit messages
 
 Use [Conventional Commits] with the 50/72 rule:
@@ -307,7 +300,6 @@ vote or comment on issues, or help answer questions.
 
 Open a [Discussion] on GitHub.
 
-[claude code]: https://claude.ai/code
 [conventional commits]: https://www.conventionalcommits.org
 [discussion]: https://@@modulePath@@/discussions
 [go]: https://go.dev
