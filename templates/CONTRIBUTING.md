@@ -130,6 +130,16 @@ counterpart, rather than splitting tests away from the file they cover.
 - Unused parameters: rename to `_`.
 - Import order: standard library, third party, then local, separated by blank
   lines.
+- A package holds one kind of thing, and its name tells what. Do not make a
+  package named `util`, `common`, `helpers` or `shared`.
+- The name of a package is the last part of its path. An exported name does not
+  repeat it: `atomicfile.Write`, not `atomicfile.WriteFileAtomic`.
+- A caller does not need an alias. If two packages that a file imports have the
+  same name, rename one of them.
+- A directory can group packages that belong together. Do not put many packages
+  under one package.
+  [A Go package is one thing](https://github.com/osapi-io/specs/blob/main/CONSTITUTION.md#a-go-package-is-one-thing)
+  tells why.
 
 ### Test doubles
 
